@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <style>
+                #messages {
+            height: 200px;
+            overflow-y: scroll;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .message span {
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        var socket = new WebSocket("ws://localhost:8000/ws/");
+
+        socket.onmessage = function(event) {
+            var messageContainer = document.getElementById('messages');
+            var messageElement = document.createElement('div');
+            messageElement.innerText = event.data;
+            messageContainer.appendChild(messageElement);
+        };
+
+        function sendMessage() {
+            var inputElement = document.getElementById('messageInput');
+            var message = inputElement.value;
+            socket.send(message);
+            inputElement.value = '';
+        }
+
+
+    </script>
+</head>
+<body>
+    <h1>WebSocket Chat</h1>
+
+    <div id="messages"></div>
+
+    <div>
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+<script>
+      var inputElement = document.getElementById('messageInput');
+       var intervalId;
+
+        inputElement.addEventListener('keyup', function(event) {
+            if (event.target.value.split(/\s+/).length >= 5) {
+                clearInterval(intervalId);
+                getMessages();
+                event.target.value = '';
+                intervalId = setInterval(getMessages, 30000);
+            }
+        });
+
+        function getMessages() {
+            var inputElement = document.getElementById('messageInput');
+            var message = inputElement.value;
+            socket.send(message);
+        }
+
+        intervalId = setInterval(getMessages, 30000);
+
+</script>
+</body>
+</html>
