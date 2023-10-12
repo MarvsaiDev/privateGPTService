@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import os
 import glob
-from typing import List
+from typing import List, Generator
 from dotenv import load_dotenv
 from multiprocessing import Pool
 from tqdm import tqdm
-
+import logging as log
 from langchain.document_loaders import (
     CSVLoader,
     EverNoteLoader,
@@ -29,7 +29,7 @@ if not load_dotenv():
     print("Could not load .env file or it is empty. Please check if it exists and is readable.")
     exit(1)
 
-from constants import CHROMA_SETTINGS
+from privateGPT.constants import CHROMA_SETTINGS
 import chromadb
 from chromadb.api.segment import API
 
@@ -38,7 +38,7 @@ persist_directory = os.environ.get('PERSIST_DIRECTORY')
 source_directory = os.environ.get('SOURCE_DIRECTORY', 'source_documents')
 embeddings_model_name = os.environ.get('EMBEDDINGS_MODEL_NAME')
 chunk_size = 4000
-chunk_overlap = 50
+chunk_overlap = 100
 
 
 # Custom document loaders
@@ -131,7 +131,24 @@ def process_documents(ignored_files: List[str] = []) -> List[Document]:
     print(f"Split into {len(documents)} chunks of text (max. {chunk_size} tokens each)")
     return documents
 
-def batch_chromadb_insertions(chroma_client: API, documents: List[Document]) -> List[Document]:
+
+def process_text_documents(text:str, metadata=None) -> List[Document]:
+    """
+    Load documents and split in chunks
+    """
+    if metadata is None:
+        metadata = {}
+    print(f"Loading documents from text: {text}")
+    documents =  [Document(page_content=text, metadata=metadata) if metadata else Document(page_content=text) ]
+    if not documents:
+        print("No new documents to load")
+        raise Exception('Doc is empty error:'+text)
+    print(f"Loaded {len(documents)} new documents from text")
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    documents = text_splitter.split_documents(documents)
+    print(f"Split into {len(documents)} chunks of text (max. {chunk_size} tokens each)")
+    return documents
+def batch_chromadb_insertions(chroma_client: API, documents: List[Document]) -> Generator[List[Document], None, None]:
     """
     Split the total documents to be inserted into batches of documents that the local chroma client can process
     """
@@ -150,20 +167,58 @@ def does_vectorstore_exist(persist_directory: str, embeddings: HuggingFaceEmbedd
         return False
     return True
 
-
-def main():
+def text_main(persist_directory:str, extracted_text:str, openai=False):
     # Create embeddings
+    from langchain.embeddings import OpenAIEmbeddings
+
+    if openai:
+        embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
+    else:
+        embeddings = OpenAIEmbeddings()
+
+    # Chroma client
+    chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persist_directory)
+
+    if does_vectorstore_exist(persist_directory, embeddings):
+        # Update and store locally vectorstore
+        log.info(f"Appending to existing vectorstore at {persist_directory}")
+        db = Chroma(persist_directory=persist_directory, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
+        collection = db.get()
+        documents = process_text_documents(extracted_text)
+        log.info(f"Creating embeddings. May take some minutes...")
+        for batched_chromadb_insertion in batch_chromadb_insertions(chroma_client, documents):
+            db.add_documents(batched_chromadb_insertion)
+    else:
+        # Create and store locally vectorstore
+        print("Creating new vectorstore")
+        documents = process_text_documents(extracted_text)
+        print(f"Creating embeddings. May take some minutes...")
+        # Create the db with the first batch of documents to insert
+        batched_chromadb_insertions = batch_chromadb_insertions(chroma_client, documents)
+        first_insertion = next(batched_chromadb_insertions)
+        db = Chroma.from_documents(first_insertion, embeddings, persist_directory=persist_directory, client_settings=CHROMA_SETTINGS, client=chroma_client)
+        # Add the rest of batches of documents
+        for batched_chromadb_insertion in batched_chromadb_insertions:
+            db.add_documents(batched_chromadb_insertion)
+
+    print(f"Ingestion complete! You can now run privateGPT.py to query your documents")
+
+def main(direct:str=None):
+    # Create embeddings
+    global persist_directory
+    if direct:
+        persist_directory = direct
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     # Chroma client
     chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persist_directory)
 
     if does_vectorstore_exist(persist_directory, embeddings):
         # Update and store locally vectorstore
-        print(f"Appending to existing vectorstore at {persist_directory}")
+        log.info(f"Appending to existing vectorstore at {persist_directory}")
         db = Chroma(persist_directory=persist_directory, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
         collection = db.get()
         documents = process_documents([metadata['source'] for metadata in collection['metadatas']])
-        print(f"Creating embeddings. May take some minutes...")
+        log.info(f"Creating embeddings. May take some minutes...")
         for batched_chromadb_insertion in batch_chromadb_insertions(chroma_client, documents):
             db.add_documents(batched_chromadb_insertion)
     else:

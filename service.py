@@ -9,10 +9,12 @@ import asyncio
 from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 
+import route_ingest
 from privateGPT.privateGPT import answer_query
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
+app.include_router(route_ingest.router, prefix='/ingest')
 
 # Assume that 'answer_query' function is defined here
 templates = Jinja2Templates(directory="templates")
