@@ -16,7 +16,7 @@ def add_text(
     meta = {'filename': filname,
             'date': datestr
             }
-    text_main('db'+os.path.sep+jobid, text)
+    text_main('db'+os.path.sep+jobid, text, meta)
 
     return {"Result": "success"}
 

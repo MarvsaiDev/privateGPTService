@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import glob
+from datetime import datetime
 from typing import List, Generator
 from dotenv import load_dotenv
 from multiprocessing import Pool
@@ -29,7 +30,7 @@ if not load_dotenv():
     print("Could not load .env file or it is empty. Please check if it exists and is readable.")
     exit(1)
 
-from privateGPT.constants import CHROMA_SETTINGS
+from .global_vars import CHROMA_SETTINGS
 import chromadb
 from chromadb.api.segment import API
 
@@ -167,14 +168,14 @@ def does_vectorstore_exist(persist_directory: str, embeddings: HuggingFaceEmbedd
         return False
     return True
 
-def text_main(persist_directory:str, extracted_text:str, openai=False):
+def text_main(persist_directory:str, extracted_text:str, metadata:str, openai=False):
     # Create embeddings
     from langchain.embeddings import OpenAIEmbeddings
 
     if openai:
         embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     else:
-        embeddings = OpenAIEmbeddings()
+        embeddings = OpenAIEmbeddings(engine='text-similarity-ada-001')
 
     # Chroma client
     chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persist_directory)
@@ -184,14 +185,14 @@ def text_main(persist_directory:str, extracted_text:str, openai=False):
         log.info(f"Appending to existing vectorstore at {persist_directory}")
         db = Chroma(persist_directory=persist_directory, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
         collection = db.get()
-        documents = process_text_documents(extracted_text)
+        documents = process_text_documents(extracted_text,metadata)
         log.info(f"Creating embeddings. May take some minutes...")
         for batched_chromadb_insertion in batch_chromadb_insertions(chroma_client, documents):
             db.add_documents(batched_chromadb_insertion)
     else:
         # Create and store locally vectorstore
         print("Creating new vectorstore")
-        documents = process_text_documents(extracted_text)
+        documents = process_text_documents(extracted_text,metadata)
         print(f"Creating embeddings. May take some minutes...")
         # Create the db with the first batch of documents to insert
         batched_chromadb_insertions = batch_chromadb_insertions(chroma_client, documents)
@@ -239,3 +240,5 @@ def main(direct:str=None):
 
 if __name__ == "__main__":
     main()
+
+

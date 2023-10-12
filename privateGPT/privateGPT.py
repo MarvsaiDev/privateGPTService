@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import privateGPT.constants as constants
+import privateGPT.global_vars as constants
 from dotenv import load_dotenv
 from langchain.chains import RetrievalQA
 from langchain.embeddings import HuggingFaceEmbeddings
