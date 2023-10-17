@@ -2,6 +2,8 @@
 import os
 import glob
 from datetime import datetime
+from functools import reduce
+from itertools import chain
 from typing import List, Generator
 from dotenv import load_dotenv
 from multiprocessing import Pool
@@ -108,25 +110,30 @@ def load_documents(source_dir: str, ignored_files: List[str] = []) -> List[Docum
         )
     filtered_files = [file_path for file_path in all_files if file_path not in ignored_files]
 
-    with Pool(processes=os.cpu_count()) as pool:
-        results = []
-        with tqdm(total=len(filtered_files), desc='Loading new documents', ncols=80) as pbar:
-            for i, docs in enumerate(pool.imap_unordered(load_single_document, filtered_files)):
-                results.extend(docs)
-                pbar.update()
+    results = map(load_single_document,filtered_files)
+    results = list(results)[0]
+    # results = reduce(lambda acc, item: acc + item, map(chain.from_iterable, results))
+
+    # with Pool(processes=os.cpu_count()) as pool:
+    #     results = []
+    #     with tqdm(total=len(filtered_files), desc='Loading new documents', ncols=80) as pbar:
+    #         for i, docs in enumerate(pool.imap_unordered(load_single_document, filtered_files)):
+    #             results.extend(docs)
+    #             pbar.update()
 
     return results
 
-def process_documents(ignored_files: List[str] = []) -> List[Document]:
+def process_documents(ignored_files: List[str] = [], source_folder=source_directory) -> List[Document]:
     """
     Load documents and split in chunks
     """
-    print(f"Loading documents from {source_directory}")
-    documents = load_documents(source_directory, ignored_files)
+    print(f"Loading documents from {source_folder}")
+    documents = load_documents(source_folder, ignored_files)
+    documents = list(documents)
     if not documents:
         print("No new documents to load")
-        exit(0)
-    print(f"Loaded {len(documents)} new documents from {source_directory}")
+        raise(Exception('No New Docs to load'))
+    print(f"Loaded {len(documents)} new documents from {source_folder}")
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     documents = text_splitter.split_documents(documents)
     print(f"Split into {len(documents)} chunks of text (max. {chunk_size} tokens each)")
@@ -218,14 +225,14 @@ def main(direct:str=None):
         log.info(f"Appending to existing vectorstore at {persist_directory}")
         db = Chroma(persist_directory=persist_directory, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
         collection = db.get()
-        documents = process_documents([metadata['source'] for metadata in collection['metadatas']])
+        documents = process_documents([metadata['source'] for metadata in collection['metadatas']], source_folder=persist_directory)
         log.info(f"Creating embeddings. May take some minutes...")
         for batched_chromadb_insertion in batch_chromadb_insertions(chroma_client, documents):
             db.add_documents(batched_chromadb_insertion)
     else:
         # Create and store locally vectorstore
         print("Creating new vectorstore")
-        documents = process_documents()
+        documents = process_documents(source_folder=persist_directory)
         print(f"Creating embeddings. May take some minutes...")
         # Create the db with the first batch of documents to insert
         batched_chromadb_insertions = batch_chromadb_insertions(chroma_client, documents)

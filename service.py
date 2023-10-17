@@ -1,5 +1,8 @@
 import multiprocessing
-
+from io import StringIO
+from typing import Optional
+import logging as log
+import pandas as pd
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
@@ -22,18 +25,36 @@ templates = Jinja2Templates(directory="templates")
 
 class QueryRequest(BaseModel):
     query: str
+    jobid: Optional[str]
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.post("/query_sync/")
 def sync_answer_query(request: QueryRequest):
-    answer, docs = answer_query(request.query)
-    return {"answer": answer, "docs": docs}
+    answer, docs = answer_query(request.query, request.jobid)
+    try:
+        csv_io = StringIO(answer)
+        df = pd.read_csv(csv_io, sep=';', escapechar='\\')
+        df.columns = 'PART_NO, Extended Price, Subscription Term, User Count, Description'.split(',')
+        df.to_csv(r'./csvtext3.csv', sep='\t')
+    except Exception  as e:
+        log.info(str(e))
+    return {"answer": answer, "table": str(df), "docs": docs}
 
 
 @app.post("/query_async/")
 async def async_answer_query(request: QueryRequest):
     answer, docs = await asyncio.to_thread(answer_query, request.query)
+
+    return {"answer": answer, "docs": docs}
+
+
+@app.post("/extract_data/")
+async def extractdata(request: QueryRequest):
+    if 'Cara' in request.query:
+        query = r"Extract PART_NO, Extended Price, Subscription Term, User Count, Description' from the following into a ; separated csv format with \n as newline."
+        request.query = query
+    answer, docs = await asyncio.to_thread(sync_answer_query, request.query)
     return {"answer": answer, "docs": docs}
 
 

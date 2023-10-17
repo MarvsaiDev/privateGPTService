@@ -24,20 +24,23 @@ embeddings_model_name = os.environ.get("EMBEDDINGS_MODEL_NAME")
 persist_directory = os.environ.get('PERSIST_DIRECTORY')
 
 model_type = os.environ.get('MODEL_TYPE')
-model_path = os.environ.get('MODEL_PATH')
+model_path = os.environ.get('MODEL_PATH') #model name
 model_n_ctx = os.environ.get('MODEL_N_CTX')
 model_n_batch = int(os.environ.get('MODEL_N_BATCH',8))
 target_source_chunks = int(os.environ.get('TARGET_SOURCE_CHUNKS',4))
 
 CHROMA_SETTINGS = constants.CHROMA_SETTINGS
 qa_system = None
-def main(commandLine=True):
+def main(commandLine=True, persistDir=None):
     # Parse the command line arguments
     args = parse_arguments()
+    global persist_directory
+    if not persistDir:
+        persistDir = persist_directory
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
-    chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persist_directory)
-    db = Chroma(persist_directory=persist_directory, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
-    retriever = db.as_retriever(search_type='similarity_score_threshold',search_kwargs={'k':3,'score_threshold':0.1}) #search_kwargs={"k": target_source_chunks})
+    chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persistDir)
+    db = Chroma(persist_directory=persistDir, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
+    retriever = db.as_retriever(search_type='similarity_score_threshold',search_kwargs={'k':4,'score_threshold':0.05}) #search_kwargs={"k": target_source_chunks})
     # activate/deactivate the streaming StdOut callback for LLMs
     callbacks = [] if args.mute_stream else [StreamingStdOutCallbackHandler()]
     # Prepare the LLM
@@ -50,6 +53,9 @@ def main(commandLine=True):
             llm = AzureOpenAI(
                 deployment_name=model_type,
                 model_name="claritus003",
+                max_tokens = 2000,
+                top_p=0.1,
+                temperature= 0
             )
 
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents= not args.hide_source)
@@ -79,12 +85,16 @@ def main(commandLine=True):
         for document in docs:
             print("\n> " + document.metadata["source"] + ":")
             print(document.page_content)
-def answer_query(query, update_callback=None):
+    return qa
+def answer_query(query, jobid=None, update_callback=None):
     global qa_system
-    if qa_system is None:
-        main(False)
 
-    res = qa_system(query)
+    if not jobid:
+        _qa_system = qa_system
+    else:
+        _qa_system = main(False, jobid)
+
+    res = _qa_system(query)
     answer, docs = res['result'], res['source_documents']
 
     if update_callback:
