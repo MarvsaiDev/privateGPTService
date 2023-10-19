@@ -17,3 +17,4 @@ fastapi
 PyQt6==6.5.0
 python-multipart
 pandas
+openpyxl

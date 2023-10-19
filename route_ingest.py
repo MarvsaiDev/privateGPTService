@@ -31,13 +31,13 @@ def add_text(
 
 @router.post("/upload/")
 async def upload_files(jobid: str = Form(...), file: UploadFile = File(...)):
-    prepare_dir(jobid)
+    prepare_dir('jobs/'+jobid)
     contents = await file.read()
-    pathname = jobid+os.path.sep+file.filename
+    pathname = 'jobs/'+jobid+os.path.sep+file.filename
     with open(pathname, 'wb') as f:
         f.write(contents)
 
-    job = await asyncio.to_thread(ingest.main,jobid)
+    job = await asyncio.to_thread(ingest.main,'jobs/'+jobid)
     return {"filename": pathname, 'job':jobid}
 
 

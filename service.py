@@ -10,11 +10,14 @@ from pydantic import BaseModel
 import asyncio
 
 from starlette.requests import Request
+from starlette.responses import FileResponse
 from starlette.staticfiles import StaticFiles
 
 import route_ingest
 from privateGPT.privateGPT import answer_query
 from fastapi.templating import Jinja2Templates
+
+from prompt_res.prompts import columns, ExtractionPrompt
 
 app = FastAPI()
 app.include_router(route_ingest.router, prefix='/ingest')
@@ -29,17 +32,35 @@ class QueryRequest(BaseModel):
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+def split_string(s, nth=5):
+    parts = s.split(';')
+    return '\n'.join(';'.join(parts[i:i+nth]) for i in range(0, len(parts), nth))
+
+def add_string_to_dataframe(df, s, delimiter=','):
+    lines = s.splitlines()
+    for line in lines:
+        columns = line.split(delimiter)
+        df = df.append(pd.Series(columns, index=df.columns), ignore_index=True)
+    return df
 @app.post("/query_sync/")
 def sync_answer_query(request: QueryRequest):
     answer, docs = answer_query(request.query, request.jobid)
+    filename = ''
     try:
+        nolines = answer.splitlines()
+        cols_array = columns.split(',')
+
+        if len(nolines)==1:
+            answer = split_string(answer, len(cols_array) )
         csv_io = StringIO(answer)
         df = pd.read_csv(csv_io, sep=';', escapechar='\\')
-        df.columns = 'PART_NO, Extended Price, Subscription Term, User Count, Description'.split(',')
-        df.to_csv(r'./csvtext3.csv', sep='\t')
+        # if df.shape[1]>len(cols_array):
+        df.columns = cols_array
+        filename = f'jobs/{request.jobid}/quote_output.xlsx'
+        df.to_excel(filename)
     except Exception  as e:
         log.info(str(e))
-    return {"answer": answer, "table": str(df), "docs": docs}
+    return {"answer": answer, "filename": filename, "docs": docs}
 
 
 @app.post("/query_async/")
@@ -52,10 +73,13 @@ async def async_answer_query(request: QueryRequest):
 @app.post("/extract_data/")
 async def extractdata(request: QueryRequest):
     if 'Cara' in request.query:
-        query = r"Extract PART_NO, Extended Price, Subscription Term, User Count, Description' from the following into a ; separated csv format with \n as newline."
+        query = ExtractionPrompt['Cara']
         request.query = query
-    answer, docs = await asyncio.to_thread(sync_answer_query, request.query)
-    return {"answer": answer, "docs": docs}
+    if 'DLT' in request.query:
+        query = ExtractionPrompt['DLT']
+        request.query = query
+    ansdict = await asyncio.to_thread(sync_answer_query, request)
+    return FileResponse(ansdict['filename'])
 
 
 
@@ -63,7 +87,9 @@ async def extractdata(request: QueryRequest):
 async def chat(request:Request):
     return templates.TemplateResponse('chat.html', {'request': request})
 
-
+@app.get("/")
+async def chat(request:Request):
+    return templates.TemplateResponse('uploadfile.html', {'request': request})
 async def my_processing_func(text:str):
     answer, docs = await asyncio.to_thread(answer_query, text)
     return answer, docs
