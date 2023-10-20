@@ -129,7 +129,7 @@ function uploadFile(file) {
   .then(data => {
     // Hide loading spinner
     document.getElementById("loading").style.display = "none";
-
+    document.getElementById("filenameid").value = file;
     showDown();
   })
   .catch(error => {

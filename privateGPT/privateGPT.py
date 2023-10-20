@@ -40,7 +40,7 @@ def main(commandLine=True, persistDir=None):
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persistDir)
     db = Chroma(persist_directory=persistDir, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
-    retriever = db.as_retriever(search_type='similarity_score_threshold',search_kwargs={'k':4,'score_threshold':0.05}) #search_kwargs={"k": target_source_chunks})
+    retriever = db.as_retriever(search_type='similarity_score_threshold',search_kwargs={'k':4,'score_threshold':0.001}) #search_kwargs={"k": target_source_chunks})
     # activate/deactivate the streaming StdOut callback for LLMs
     callbacks = [] if args.mute_stream else [StreamingStdOutCallbackHandler()]
     # Prepare the LLM

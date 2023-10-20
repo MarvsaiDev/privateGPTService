@@ -44,7 +44,7 @@ def add_string_to_dataframe(df, s, delimiter=','):
     return df
 @app.post("/query_sync/")
 def sync_answer_query(request: QueryRequest):
-    answer, docs = answer_query(request.query, request.jobid)
+    answer, docs = answer_query(request.query, 'jobs/'+request.jobid)
     filename = ''
     try:
         nolines = answer.splitlines()
