@@ -96,6 +96,7 @@ def answer_query(query, jobid=None, update_callback=None):
 
     res = _qa_system(query)
     answer, docs = res['result'], res['source_documents']
+    print(res['source_documents'])
 
     if update_callback:
         update_callback(answer)

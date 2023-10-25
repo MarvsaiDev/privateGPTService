@@ -4,7 +4,7 @@ from typing import Optional
 import logging as log
 import pandas as pd
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import asyncio
@@ -53,13 +53,15 @@ def sync_answer_query(request: QueryRequest):
         if len(nolines)==1:
             answer = split_string(answer, len(cols_array) )
         csv_io = StringIO(answer)
-        df = pd.read_csv(csv_io, sep=';', escapechar='\\')
+        df = pd.read_csv(csv_io, sep=';', escapechar='\\', header=None)
+        # df.reset_index(inplace=True)
         # if df.shape[1]>len(cols_array):
         df.columns = cols_array
         filename = f'jobs/{request.jobid}/quote_output.xlsx'
-        df.to_excel(filename)
+        df.to_excel(filename, index=False)
     except Exception  as e:
         log.info(str(e))
+        raise HTTPException(status_code=404,detail=str(e))
     return {"answer": answer, "filename": filename, "docs": docs}
 
 
@@ -78,6 +80,12 @@ async def extractdata(request: QueryRequest):
     if 'DLT' in request.query:
         query = ExtractionPrompt['DLT']
         request.query = query
+    elif 'object' in request.query:
+        query = ExtractionPrompt['Cara']
+        request.query = query
+    else:
+        raise HTTPException(status=300,detail='No prompt found for this file format')
+
     ansdict = await asyncio.to_thread(sync_answer_query, request)
     return FileResponse(ansdict['filename'])
 

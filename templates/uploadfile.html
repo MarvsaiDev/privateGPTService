@@ -91,7 +91,9 @@ fetch('/extract_data/', {
   document.body.removeChild(a);
 })
 .catch((error) => {
-  console.error('Error:', error);
+   console.error('Error:', error);
+   document.getElementById("upload_info").innerHTML = '<p style="color: red;">Error'+error+' </p>';
+
 });
 
 }
@@ -129,7 +131,7 @@ function uploadFile(file) {
   .then(data => {
     // Hide loading spinner
     document.getElementById("loading").style.display = "none";
-    document.getElementById("filenameid").value = file;
+    document.getElementById("filenameid").value = file.name;
     showDown();
   })
   .catch(error => {
