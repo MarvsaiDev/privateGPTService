@@ -77,7 +77,7 @@ async def extractdata(request: QueryRequest):
     if 'Cara' in request.query:
         query = ExtractionPrompt['Cara']
         request.query = query
-    if 'DLT' in request.query:
+    elif 'DLT' in request.query:
         query = ExtractionPrompt['DLT']
         request.query = query
     elif 'object' in request.query:
