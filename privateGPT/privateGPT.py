@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
+from typing import List
+
+from langchain.chains.retrieval_qa.base import BaseRetrievalQA
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import Document
+
 import privateGPT.global_vars as constants
 from dotenv import load_dotenv
 from langchain.chains import RetrievalQA
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.vectorstores import Chroma
 import openai
-from langchain.llms import GPT4All, LlamaCpp, AzureOpenAI
+from langchain.llms import GPT4All, LlamaCpp, AzureOpenAI, OpenAIChat
 import chromadb
 import os
 import argparse
@@ -31,34 +37,53 @@ target_source_chunks = int(os.environ.get('TARGET_SOURCE_CHUNKS',4))
 
 CHROMA_SETTINGS = constants.CHROMA_SETTINGS
 qa_system = None
-def main(commandLine=True, persistDir=None):
+def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 5)->BaseRetrievalQA:
     # Parse the command line arguments
-    args = parse_arguments()
+    # args = parse_arguments()
     global persist_directory
     if not persistDir:
         persistDir = persist_directory
-    embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
+    if '-ada-' in embeddings_model_name:
+        embeddings =OpenAIEmbeddings(deployment=embeddings_model_name, engine=embeddings_model_name)
+    else:
+        embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persistDir)
+    nofiles = os.listdir(persistDir)
+    no_of_pdfs = sum(['pdf' in nof for nof in nofiles])
     db = Chroma(persist_directory=persistDir, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
-    retriever = db.as_retriever(search_type='similarity_score_threshold',search_kwargs={'k':4,'score_threshold':0.001}) #search_kwargs={"k": target_source_chunks})
+    retriever = db.as_retriever(search_type='similarity_score_threshold',search_kwargs={'k':numpages,'score_threshold':0.0001}) #search_kwargs={"k": target_source_chunks})
     # activate/deactivate the streaming StdOut callback for LLMs
-    callbacks = [] if args.mute_stream else [StreamingStdOutCallbackHandler()]
+    callbacks = []
+
     # Prepare the LLM
-    match model_type:
+    dengine = 'gpt-35-16k'
+    match lmodel_type:
         case "LlamaCpp":
             llm = LlamaCpp(model_path=model_path, max_tokens=model_n_ctx, n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case "GPT4All":
             llm = GPT4All(model=model_path, max_tokens=model_n_ctx, backend='gptj', n_batch=model_n_batch, callbacks=callbacks, verbose=False)
+        case 'OpenAIChat':
+            llm = ChatOpenAI( model_name="gpt-35-16k"if numpages>1 else "test",max_tokens = 4000 if '16k' in dengine else 2000, temperature=0.0,
+                model_kwargs=dict(engine=dengine,top_p=0.01))
         case _default:
             llm = AzureOpenAI(
-                deployment_name=model_type,
+                deployment_name='text-davinci-003',
                 model_name="claritus003",
-                max_tokens = 2000,
-                top_p=0.1,
+                max_tokens = 1800,
+                top_p=0.01,
                 temperature= 0
             )
 
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents= not args.hide_source)
+    from langchain.prompts import PromptTemplate
+    prompt_template = """Use the following pieces of context to answer the question at the end.
+        '{context}'
+        Question: {question}
+        """
+    PROMPT = PromptTemplate(
+        template=prompt_template, input_variables=["context", "question"]
+    )
+    chain_type_kwargs = {"prompt": PROMPT}
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True, chain_type_kwargs=chain_type_kwargs)
     # Interactive questions and answers
     global qa_system
     qa_system = qa
@@ -72,7 +97,7 @@ def main(commandLine=True, persistDir=None):
         # Get the answer from the chain
         start = time.time()
         res = qa(query)
-        answer, docs = res['result'], [] if args.hide_source else res['source_documents']
+        answer, docs = res['result'], []
         end = time.time()
 
         # Print the result
@@ -86,22 +111,31 @@ def main(commandLine=True, persistDir=None):
             print("\n> " + document.metadata["source"] + ":")
             print(document.page_content)
     return qa
-def answer_query(query, jobid=None, update_callback=None):
-    global qa_system
 
-    if not jobid:
-        _qa_system = qa_system
+def func_print(srcdocs:List[Document] ):
+    if not isinstance(srcdocs, list):
+        print(srcdocs)
+        return
+    for x in srcdocs:
+        print(x.page_content)
+def answer_query(query, jobid=None, qs=None, update_callback=None, metadata:dict=None):
+
+    if qs:
+        _qa_system = main(False, jobid)
     else:
+        if not jobid:
+            raise Exception('answer_query 118: jobid must be specifed or Query system')
         _qa_system = main(False, jobid)
 
-    res = _qa_system(query)
+    res = _qa_system(query, metadata=metadata if metadata else {})
     answer, docs = res['result'], res['source_documents']
-    print(res['source_documents'])
+    func_print(res['source_documents'])
+    log.info(res)
 
     if update_callback:
         update_callback(answer)
     else:
-        return answer, docs
+        return answer, docs, _qa_system
 def parse_arguments():
 
     # question:

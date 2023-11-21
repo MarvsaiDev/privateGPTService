@@ -1,4 +1,5 @@
 import multiprocessing
+import random
 from io import StringIO
 from typing import Optional
 import logging as log
@@ -17,18 +18,25 @@ import route_ingest
 from privateGPT.privateGPT import answer_query
 from fastapi.templating import Jinja2Templates
 
-from prompt_res.prompts import columns, ExtractionPrompt
+from privateGPT.util import merge_or_return_larger, clean_df
+from prompt_res.prompts import columns, ExtractionPrompt, PRICE_COL, IGNORE_COL, IGNORE_COL_IDX_KEY, PRICE_COL_KEY, \
+    TOTAL_PROMPT
 
 app = FastAPI()
 app.include_router(route_ingest.router, prefix='/ingest')
 
 # Assume that 'answer_query' function is defined here
 templates = Jinja2Templates(directory="templates")
+LOGFORMAT = "%(asctime)s:%(levelname)s:%(filename)s\'%(lineno)d:%(funcName)s:%(message)s"
 
+log.basicConfig(filename='./aiserv.log', format=LOGFORMAT, level=log.INFO)
 
 class QueryRequest(BaseModel):
     query: str
-    jobid: Optional[str]
+    jobid: Optional[str]=''
+    perpage: Optional[str] = 'no'
+    meta: Optional[dict]
+    output: Optional[str]='xlsx'
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -42,26 +50,130 @@ def add_string_to_dataframe(df, s, delimiter=','):
         columns = line.split(delimiter)
         df = df.append(pd.Series(columns, index=df.columns), ignore_index=True)
     return df
-@app.post("/query_sync/")
-def sync_answer_query(request: QueryRequest):
-    answer, docs = answer_query(request.query, 'jobs/'+request.jobid)
-    filename = ''
+
+gcols_array = columns.split(', ')
+
+
+def get_df(answer:str, cols_array, _sep=';', headerList = ['PART_NO', 'Part No', 'Item No'] ):
+
     try:
         nolines = answer.splitlines()
-        cols_array = columns.split(',')
 
-        if len(nolines)==1:
-            answer = split_string(answer, len(cols_array) )
+        if len(nolines) == 1 and cols_array:
+            answer = split_string(answer, len(cols_array))
         csv_io = StringIO(answer)
-        df = pd.read_csv(csv_io, sep=';', escapechar='\\', header=None)
-        # df.reset_index(inplace=True)
-        # if df.shape[1]>len(cols_array):
-        df.columns = cols_array
-        filename = f'jobs/{request.jobid}/quote_output.xlsx'
-        df.to_excel(filename, index=False)
-    except Exception  as e:
-        log.info(str(e))
-        raise HTTPException(status_code=404,detail=str(e))
+        df = pd.read_csv(csv_io, sep=_sep, escapechar='\\', header=[0] if any([word in answer[:30] for word in headerList]) else None)
+        return df
+    except Exception as e:
+        log.error('Df conversion')
+        log.error(str(e))
+        print('get_df:'.upper()+str(e))
+        return pd.DataFrame()
+@app.post("/query_sync/")
+def sync_answer_query(request: QueryRequest):
+    global gcols_array
+    answer, docs , qs = answer_query(request.query, 'jobs/'+request.jobid, metadata={'splitData':2 if request.perpage=='split' else 5 if request.perpage=='yes' else 0, 'sortByPage': True})
+    parts = answer.split('|;|')
+    filename = ''
+    cols_array = gcols_array
+    col_idx = []
+    price_col = PRICE_COL
+    total_df = pd.DataFrame()
+    df = pd.DataFrame()
+    calc_value=None
+    message = 'No CA'
+    total_from_quote = None
+    has_sub_start = False
+    if request.output=='xlsx':
+        if request.meta:
+            cols_array = request.meta['columns'].split('; ')
+            if len(cols_array)==1:
+                cols_array = request.meta['columns'].split(', ')
+            has_sub_start = 'Subscription Start Date' in cols_array
+            col_idx = request.meta[IGNORE_COL_IDX_KEY]
+            price_col = request.meta[PRICE_COL_KEY]
+            total_prompt = request.meta[TOTAL_PROMPT]
+            if total_prompt:
+                try:
+                    if request.meta and 'reset_total' in request.meta:
+                        tanswer, d, q = answer_query('Extract Grand Total; Time Period. Output data in a ; separated csv string', jobid='jobs/'+request.jobid, metadata={'splitData':0})
+                    else:
+                        tanswer, d, q = answer_query(
+                            total_prompt, jobid='jobs/'+request.jobid, qs=qs)
+
+                    tanswer = tanswer.split(':')
+                    if len(tanswer)>1:
+                        tanswer = tanswer[1]
+                    else:
+                        tanswer = tanswer[0]
+                    totals = tanswer.split('|;|')
+                    ptot_df = pd.DataFrame()
+                    for tot in totals:
+                        tot_df = get_df(tot, None, _sep=';', headerList=['Total', 'YEAR'])
+                        if not ptot_df.empty:
+                            ptot_df = merge_or_return_larger(ptot_df, tot_df)
+                        else:
+                            ptot_df = tot_df
+                    total_df = ptot_df
+                    total_from_quote = float( total_df.iloc[0,0].replace('$', '').replace(',', ''))
+                except Exception as totalE:
+                    log.error(str(totalE))
+
+
+        try:
+            okdf = pd.DataFrame()
+            for part in parts:
+                dftemp = get_df(part, cols_array, _sep=';')
+                if dftemp.empty:
+                    continue
+                df = dftemp
+                if not okdf.empty:
+                    df = merge_or_return_larger(okdf, df)
+                okdf = df
+
+            try:
+                if len(df.columns)>len(cols_array):
+                    df = df.iloc[:,:len(cols_array)]
+                if df.shape[1] < len(cols_array):
+                    log.warning('Guessed Col Names')
+                    df.columns = cols_array[:df.shape[1]]
+                else:
+                    df.columns = cols_array
+
+                if col_idx:
+                    df = df.drop(df.columns[col_idx], axis=1)
+                # Write each dataframe to a different worksheet.
+                df, calc_value, message = clean_df(df, cols_array, price_col, has_sub_start, total_from_quote)
+
+
+            except Exception as e:
+                log.warning('Unable to Convert Float, Line:' + str(e.__traceback__.tb_lineno) + str(e))
+            rndint = random.Random().randint(1,10)
+            filename = f'jobs/{request.jobid}/quote_output{rndint}.xlsx'
+            xwriter = pd.ExcelWriter(filename)
+            # df.to_excel(filename, index=False)
+            df.to_excel(xwriter, sheet_name='Sheet1',index=False)
+            workbook = xwriter.book
+            worksheet = xwriter.sheets['Sheet1']
+
+            # Add a format for currency
+            money_fmt = workbook.add_format({'num_format': '$#,##0.00'})
+
+            # Set the format for the column
+            worksheet.set_column(price_col, price_col+1, None, cell_format=money_fmt)
+            if not total_df.empty:
+                if calc_value and message and total_from_quote:
+                    total_df.loc['Diff_Calc'] = pd.Series(total_from_quote - calc_value, index=[total_df.columns[0]])
+                    total_df.loc['Calc Total'] = pd.Series(calc_value, index=[total_df.columns[0]])
+                    total_df.loc['Message'] = pd.Series(message, index=[total_df.columns[0]])
+
+                total_df.to_excel(xwriter, sheet_name='TotalsFromPDF', index=True)
+            xwriter.close()
+
+        except Exception  as e:
+            log.error(str(e))
+            print('Exception:'+str(e.__traceback__.tb_lineno))
+            raise HTTPException(status_code=404,detail=str(e))
     return {"answer": answer, "filename": filename, "docs": docs}
 
 
@@ -74,21 +186,64 @@ async def async_answer_query(request: QueryRequest):
 
 @app.post("/extract_data/")
 async def extractdata(request: QueryRequest):
-    if 'Cara' in request.query:
-        query = ExtractionPrompt['Cara']
-        request.query = query
-    elif 'DLT' in request.query:
-        query = ExtractionPrompt['DLT']
-        request.query = query
-    elif 'object' in request.query:
-        query = ExtractionPrompt['Cara']
-        request.query = query
-    else:
-        raise HTTPException(status=300,detail='No prompt found for this file format')
-
-    ansdict = await asyncio.to_thread(sync_answer_query, request)
+    log.info('extractdata')
+    ansdict = await extractdata_json( request)
     return FileResponse(ansdict['filename'])
 
+@app.post("/extract_data_json/")
+async def extractdata_json(request: QueryRequest):
+    log.info('extractdata')
+    if request.output=='xlsx':
+        if 'Carah' in request.query:
+            secondKey = 'Atlassian' if 'Atlassian' in request.query else ''
+            if ' Entrust' in request.query:
+                secondKey = 'Entrust'
+
+            querydict = ExtractionPrompt['Cara', secondKey]
+            request.query = querydict['prompt']
+
+            request.meta = querydict
+        elif 'DLT' in request.query:
+            querydict = ExtractionPrompt['DLT']
+            request.meta = querydict
+            request.query = querydict['prompt']
+        elif 'QUO' in request.query:
+            querydict = ExtractionPrompt['QUO']
+            request.meta = querydict
+            request.query = querydict['prompt']
+        elif 'object' in request.query:
+            query = ExtractionPrompt['Cara']
+            request.query = query
+        else:
+            log.info('unknown format trying')
+            ep = ExtractionPrompt
+            querydict = ep['default']
+            request.meta = querydict
+            request.query = querydict['prompt']
+            querydict = ep.my_dict['default'].copy()
+            try:
+                answer, docs, qs = answer_query('What kind of column headers can you see in this data? Respond in a ; separated csv format.', 'jobs/' + request.jobid, metadata={
+                    'splitData': 2 if request.perpage == 'split' else 5 if request.perpage == 'yes' else 0,
+                    'sortByPage': True})
+
+                if answer.find('; ')==-1:
+                    answer = answer.replace(';', '; ')
+                idx = answer.index(';')
+                if idx>2 and idx<10 and 'MFG' in answer.upper():
+                    cols = answer.split('; ')
+                    if len(cols)>len(querydict['columns'].split(',')):
+                        querydict['columns'] = answer+'; Valid Date'
+                        querydict = ep.get_alt(querydict, 'new')
+                        querydict[PRICE_COL_KEY] = next((i for i, s in enumerate(cols) if 'PRICE' in s.upper()), None)
+                        request.meta = querydict
+                        request.query = querydict['prompt']
+
+            except Exception as e:
+                log.error('could not find enough columns: '+str(e)+' Line:'+str(e.__traceback__.tb_lineno))
+
+
+    ansdict = await asyncio.to_thread(sync_answer_query, request)
+    return ansdict
 
 
 @app.get("/chat")
@@ -123,4 +278,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=8101, log_level="info")

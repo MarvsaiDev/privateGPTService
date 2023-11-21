@@ -14,6 +14,26 @@ router = APIRouter()
 
 
 
+def convert_to_many_pages(filename: str = 'large.pdf'):
+    from pypdf import PdfReader, PdfWriter
+    # Open the large PDF file
+    pdf_file = open(filename, 'rb')
+    pdf_reader = PdfReader(pdf_file)
+
+    # Split the file into individual pages
+    for page_num in range(len(pdf_reader.pages)):
+        # Create a new PDF writer object for each page
+        pdf_writer = PdfWriter()
+        pdf_writer.add_page(pdf_reader.pages[page_num])
+
+        # Write the page to a new file
+        output_file_name = f'page_{page_num + 1}.pdf'
+        output_file = open(output_file_name, 'wb')
+        pdf_writer.write(output_file)
+        output_file.close()
+
+    pdf_file.close()
+
 @router.post("/")
 def add_text(
         text: str = Form(...),

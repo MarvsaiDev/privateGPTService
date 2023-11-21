@@ -21,9 +21,11 @@
 <body>
 
 <div class="container">
-  <h1 class="my-4">Drag and Drop Software Vendor Quote For Conversion into Excel with AI</h1>
+  <h3 class="my-4">Drag and Drop Software Vendor Quote</h3>
+      <button onClick="window.location.reload();">New Quote</button>
+    <h6>Conversion into Excel with AI</h6>
 
-  <div id="drop_zone" class="border border-secondary rounded p-4 mb-4" style="width:600px; height:100px; box-shadow: 5px 10px 8px 10px #888888;">
+  <div id="drop_zone" class="border border-secondary rounded p-4 mb-4" style="width:800px; height:300px; box-shadow: 5px 10px 8px 10px #888888;">
     Drop files here
   </div>
 
@@ -31,6 +33,8 @@
     <label for="jobid">Job ID:</label>
     <input type="text" class="form-control" id="jobid" value="" placeholder="Enter job id">
     <input type="text" class="form-control" id="filenameid" value="filename" onclick="showDown();" placeholder="Enter filename">
+    <label for="perpagecheck">Process Each Page Separately * </label><input type="checkbox" class="form-control-sm" id="perpagecheck" value="filename" onclick="showDown();" placeholder="Process per Page" alt="Process Per Page" >
+<br>*(If quotes missing try toggling this option to ON or OFF. When unticked all the pages will be processed in one go, may throw error but be more accurate)
   </div>
 
   <p id="upload_info"></p>
@@ -64,13 +68,25 @@ document.getElementById("drop_zone").addEventListener("drop", function(event) {
 
 function downloadFile(name, strJobid){
 var jobval = document.getElementById("jobid").value
+document.getElementById("downloadbut").disabled = true;
+document.getElementById("loading").style.display = "block";
 name = name.trim();
+var checkbox = document.getElementById("perpagecheck");
+var perpagemsg = "yes";
+if (checkbox.checked){
+  perpagemsg = "yes";
+}
+else{
+ perpagemsg = "no";
+}
+
+
 fetch('/extract_data/', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
   },
-  body: JSON.stringify({query: name, jobid: strJobid}) // replace with your actual data
+  body: JSON.stringify({query: name, jobid: strJobid, perpage: perpagemsg }) // replace with your actual data
 })
 .then(response => response.blob())
 .then(blob => {
@@ -79,10 +95,10 @@ fetch('/extract_data/', {
   const a = document.createElement('a');
   a.style.display = 'none';
   a.href = url;
-
+  let fname = document.getElementById("filenameid").value;
   // the filename you want
-  a.download = 'downloadInspireQuote.xlsx'; // replace with your actual file name and extension
-
+  a.download = '_'+  fname.substring(0, 20)+'.xlsx'; // replace with your actual file name and extension
+  document.getElementById("loading").style.display = "none";
   document.body.appendChild(a);
   a.click();
 
@@ -91,12 +107,12 @@ fetch('/extract_data/', {
   document.body.removeChild(a);
 })
 .catch((error) => {
-   console.error('Error:', error);
-   document.getElementById("upload_info").innerHTML = '<p style="color: red;">Error'+error+' </p>';
-
+ document.getElementById("loading").style.display = "none";
+   console.error('Error:', error.message);
+   document.getElementById("upload_info").innerHTML = '<p style="color: red;">Error'+error.message+' </p>';
 });
-
 }
+
 
 function showDown(){
  document.getElementById("upload_info").innerHTML='';
@@ -107,7 +123,7 @@ var data = {
   "filename": filenameElem,
   "job": jobname
 };
- document.getElementById("upload_info").innerHTML = '<p>Filename: ' + data.filename + ", Job ID: " + data.job+"</p> <ul><li>    <button onclick=\"downloadFile("+"\'"+data.filename+"\'" +",\'" +data.job+'\');\">Download File</button></li></ul>';
+ document.getElementById("upload_info").innerHTML = '<p>Filename: ' + data.filename + ", Job ID: " + data.job+"</p> <ul><li>    <button id=\"downloadbut\" onclick=\"downloadFile("+"\'"+data.filename+"\'" +",\'" +data.job+'\');\">Download File</button></li></ul>';
 
 }
 

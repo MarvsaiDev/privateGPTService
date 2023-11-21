@@ -4,6 +4,7 @@ import glob
 from datetime import datetime
 from functools import reduce
 from itertools import chain
+import re
 from typing import List, Generator
 from dotenv import load_dotenv
 from multiprocessing import Pool
@@ -20,13 +21,15 @@ from langchain.document_loaders import (
     UnstructuredMarkdownLoader,
     UnstructuredODTLoader,
     UnstructuredPowerPointLoader,
-    UnstructuredWordDocumentLoader,
+    UnstructuredWordDocumentLoader, PDFMinerLoader,
 )
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
 from langchain.docstore.document import Document
+
+from privateGPT.msg_loader import MsgLoader
 
 if not load_dotenv():
     print("Could not load .env file or it is empty. Please check if it exists and is readable.")
@@ -40,8 +43,9 @@ from chromadb.api.segment import API
 persist_directory = os.environ.get('PERSIST_DIRECTORY')
 source_directory = os.environ.get('SOURCE_DIRECTORY', 'source_documents')
 embeddings_model_name = os.environ.get('EMBEDDINGS_MODEL_NAME')
-chunk_size = 4000
-chunk_overlap = 100
+chunk_size = 4300
+chunk_overlap = 0
+pattern = r"QUOTE DATE:\nQUOTE NO:\n\d{2}/\d{2}/\d{4}\n\d+\n"
 
 
 # Custom document loaders
@@ -80,9 +84,11 @@ LOADER_MAPPING = {
     ".md": (UnstructuredMarkdownLoader, {}),
     ".odt": (UnstructuredODTLoader, {}),
     ".pdf": (PyMuPDFLoader, {}),
+    ".pdf2": (PDFMinerLoader, {}),
     ".ppt": (UnstructuredPowerPointLoader, {}),
     ".pptx": (UnstructuredPowerPointLoader, {}),
     ".txt": (TextLoader, {"encoding": "utf8"}),
+    ".msg": (MsgLoader,  {})
     # Add more mappings for other file extensions and loaders as needed
 }
 
@@ -123,6 +129,14 @@ def load_documents(source_dir: str, ignored_files: List[str] = []) -> List[Docum
 
     return results
 
+def reptext():
+    date = datetime.now().strftime('%m/%d/%Y')
+    quote_no = "4"
+
+    # Replacement string with example values
+    replacement = f"QUOTE DATE:\nQUOTE NO:\n{date}\n{quote_no}\n"
+    return replacement
+
 def process_documents(ignored_files: List[str] = [], source_folder=source_directory) -> List[Document]:
     """
     Load documents and split in chunks
@@ -135,6 +149,9 @@ def process_documents(ignored_files: List[str] = [], source_folder=source_direct
         raise(Exception('No New Docs to load'))
     print(f"Loaded {len(documents)} new documents from {source_folder}")
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    # for doc in documents[1:]:
+    #     if 'Carahsoft' in doc.metadata['source']:
+    #         doc.page_content = re.sub(pattern, reptext(), doc.page_content)
     documents = text_splitter.split_documents(documents)
     print(f"Split into {len(documents)} chunks of text (max. {chunk_size} tokens each)")
     return documents
@@ -175,6 +192,8 @@ def does_vectorstore_exist(persist_directory: str, embeddings: HuggingFaceEmbedd
         return False
     return True
 
+
+
 def text_main(persist_directory:str, extracted_text:str, metadata:str, openai=False):
     # Create embeddings
     from langchain.embeddings import OpenAIEmbeddings
@@ -182,7 +201,11 @@ def text_main(persist_directory:str, extracted_text:str, metadata:str, openai=Fa
     if openai:
         embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     else:
-        embeddings = OpenAIEmbeddings(engine='text-similarity-ada-001')
+        openai.api_base = os.environ['OPENAI_API_BASE']
+        openai.api_version = os.environ['OPENAI_API_VERSION']
+        openai.api_key = os.environ['OPENAI_API_KEY']
+        persist_directory = os.environ.get('PERSIST_DIRECTORY')
+        embeddings = OpenAIEmbeddings(deployment=embeddings_model_name)
 
     # Chroma client
     chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persist_directory)
@@ -216,7 +239,10 @@ def main(direct:str=None):
     global persist_directory
     if direct:
         persist_directory = direct
-    embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
+    if '-ada-' in embeddings_model_name:
+        embeddings = OpenAIEmbeddings(deployment=embeddings_model_name,chunk_size=1, engine=embeddings_model_name)
+    else:
+        embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     # Chroma client
     chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persist_directory)
 
