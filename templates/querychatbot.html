@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <meta charset="UTF-8">
+    <title>Query Sync Form</title>
+    <script>
+function submitForm() {
+    event.preventDefault();
+
+    // Get form data
+    let formData = new FormData(document.getElementById('queryForm'));
+    let jsonObject = {};
+
+    for (const [key, value]  of formData.entries()) {
+        jsonObject[key] = value;
+    }
+
+    fetch('/query_sync/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(jsonObject)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data && data.answer) {
+            document.getElementById('answerOutput').value = data.answer;
+        } else {
+            document.getElementById('answerOutput').value = 'No answer available.';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('answerOutput').value = 'Error fetching data.';
+    });
+}
+
+    </script>
+</head>
+<body>
+    <h1>Query Sync Form</h1>
+<form id="queryForm" onsubmit="submitForm()" class="form-group">
+    <div class="mb-3">
+        <label for="queryInput" class="form-label">Enter Query:</label>
+        <input type="text" id="queryInput" name="query" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label for="jobIdInput" class="form-label">Job ID:</label>
+        <input type="text" id="jobIdInput" name="jobid" class="form-control">
+    </div>
+    <div class="mb-3">
+        <label for="perPageInput" class="form-label">Per Page:</label>
+        <input type="text" id="perPageInput" name="perpage" value="no" class="form-control">
+    </div>
+    <div class="mb-3">
+        <label for="outputInput" class="form-label">Output:</label>
+        <input type="text" id="outputInput" name="output" value="text" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary">Submit Query</button>
+</form>
+
+    <br>
+    <label for="answerOutput">Answer:</label>
+    <textarea rows="10" cols="200" id="answerOutput" rows="4" cols="50" readonly></textarea>
+<script>
+    window.onload = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const jobId = urlParams.get('jobid');
+    document.getElementById('jobIdInput').value = jobId;
+}
+</script>
+</body>
+</html>
