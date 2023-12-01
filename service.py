@@ -69,6 +69,8 @@ def get_df(answer:str, cols_array, _sep=';', headerList = ['PART_NO', 'Part No',
         log.error(str(e))
         print('get_df:'.upper()+str(e))
         return pd.DataFrame()
+
+
 @app.post("/query_sync/")
 def sync_answer_query(request: QueryRequest):
     global gcols_array
@@ -231,7 +233,7 @@ async def extractdata_json(request: QueryRequest):
                 idx = answer.index(';')
                 if idx>2 and idx<10 and 'MFG' in answer.upper():
                     cols = answer.split('; ')
-                    if len(cols)>len(querydict['columns'].split(',')):
+                    if len(cols)>len(querydict['columns'].split(';')):
                         querydict['columns'] = answer+'; Valid Date'
                         querydict = ep.get_alt(querydict, 'new')
                         querydict[PRICE_COL_KEY] = next((i for i, s in enumerate(cols) if 'PRICE' in s.upper()), None)
@@ -250,6 +252,10 @@ async def extractdata_json(request: QueryRequest):
 async def chat(request:Request):
     return templates.TemplateResponse('chat.html', {'request': request})
 
+
+@app.get("/qchat")
+async def chat(request:Request):
+    return templates.TemplateResponse('querychatbot.html', {'request': request})
 @app.get("/")
 async def chat(request:Request):
     return templates.TemplateResponse('uploadfile.html', {'request': request})

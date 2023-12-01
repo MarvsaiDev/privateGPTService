@@ -112,7 +112,9 @@ fetch('/extract_data/', {
    document.getElementById("upload_info").innerHTML = '<p style="color: red;">Error'+error.message+' </p>';
 });
 }
-
+function gotoqchat(){
+window.location='qchat/?jobid='+document.getElementById("jobid").value;
+}
 
 function showDown(){
  document.getElementById("upload_info").innerHTML='';
@@ -123,7 +125,9 @@ var data = {
   "filename": filenameElem,
   "job": jobname
 };
- document.getElementById("upload_info").innerHTML = '<p>Filename: ' + data.filename + ", Job ID: " + data.job+"</p> <ul><li>    <button id=\"downloadbut\" onclick=\"downloadFile("+"\'"+data.filename+"\'" +",\'" +data.job+'\');\">Download File</button></li></ul>';
+ var docbuttons = document.getElementById("upload_info");
+ docbuttons.innerHTML = '<p>Filename: ' + data.filename + ", Job ID: " + data.job+"</p> <ul><li><button id=\"downloadbut\" onclick=\"downloadFile("+"\'"+data.filename+"\'" +",\'" +data.job+'\');\">Download Excel File</button></li>';
+ docbuttons.innerHTML += '<li><button onclick="gotoqchat();"> Query Document </button></li></ul>';
 
 }
 
