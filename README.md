@@ -1,6 +1,10 @@
 # privateGPTService
 
-A ROG solution that supports open source models and Azure Open AI.
+A RAG solution that supports open source models and Azure Open AI.
+Primary purpose:
+1- Creates Jobs for RAG
+2- Uses that jobs to exctract tabular data based on column structures specified in prompts.
+3- Allows query of any files in the RAG 
 Built on LangChain older version with custom mods (see custom langchain).
 
 Will run with normal langchain but will not support all the features or accuracy.
