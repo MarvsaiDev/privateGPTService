@@ -37,14 +37,14 @@ target_source_chunks = int(os.environ.get('TARGET_SOURCE_CHUNKS',4))
 
 CHROMA_SETTINGS = constants.CHROMA_SETTINGS
 qa_system = None
-def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 5)->BaseRetrievalQA:
+def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 10)->BaseRetrievalQA:
     # Parse the command line arguments
     # args = parse_arguments()
     global persist_directory
     if not persistDir:
         persistDir = persist_directory
     if '-ada-' in embeddings_model_name:
-        embeddings =OpenAIEmbeddings(deployment=embeddings_model_name, engine=embeddings_model_name)
+        embeddings = OpenAIEmbeddings(deployment=embeddings_model_name, engine=embeddings_model_name)
     else:
         embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persistDir)
@@ -63,7 +63,7 @@ def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 5
         case "GPT4All":
             llm = GPT4All(model=model_path, max_tokens=model_n_ctx, backend='gptj', n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case 'OpenAIChat':
-            llm = ChatOpenAI( model_name="gpt-35-16k"if numpages>1 else "test",max_tokens = 4000 if '16k' in dengine else 2000, temperature=0.0,
+            llm = ChatOpenAI(model_name="gpt-35-16k"if numpages>1 else "test",max_tokens = 4000 if '16k' in dengine else 2000, temperature=0.0,
                 model_kwargs=dict(engine=dengine,top_p=0.01))
         case _default:
             llm = AzureOpenAI(
