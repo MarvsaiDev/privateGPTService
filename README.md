@@ -10,7 +10,9 @@ Built on LangChain older version with custom mods (see custom langchain).
 Will run with normal langchain but will not support all the features or accuracy.
 
 It runs as a service with drag and drop Retrival Augmented Generation.
-
+** To run
+copy dotEnvExample to .env
+edit the file and replace with your choice of models.
 
 
 
