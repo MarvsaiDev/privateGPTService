@@ -30,6 +30,7 @@ embeddings_model_name = os.environ.get("EMBEDDINGS_MODEL_NAME")
 persist_directory = os.environ.get('PERSIST_DIRECTORY')
 
 model_type = os.environ.get('MODEL_TYPE')
+model_subtype = os.environ.get('MODEL_SUBTYPE', 'gpt-35-16k' )
 model_path = os.environ.get('MODEL_PATH') #model name
 model_n_ctx = os.environ.get('MODEL_N_CTX')
 model_n_batch = int(os.environ.get('MODEL_N_BATCH',8))
@@ -63,7 +64,7 @@ def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 1
         case "GPT4All":
             llm = GPT4All(model=model_path, max_tokens=model_n_ctx, backend='gptj', n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case 'OpenAIChat':
-            llm = ChatOpenAI(model_name="gpt-35-16k"if numpages>1 else "test",max_tokens = 4000 if '16k' in dengine else 2000, temperature=0.0,
+            llm = ChatOpenAI(model_name=model_subtype, max_tokens = 4000 if '16k' in dengine else 2000, temperature=0.0,
                 model_kwargs=dict(engine=dengine,top_p=0.01))
         case _default:
             llm = AzureOpenAI(

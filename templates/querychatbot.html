@@ -36,6 +36,19 @@ function submitForm() {
         document.getElementById('answerOutput').value = 'Error fetching data.';
     });
 }
+function changeToInput(selectElement) {
+    // Create a new input element
+    var inputElement = document.createElement("input");
+
+    // Copy attributes from the select element to the input element
+    inputElement.id = selectElement.id;
+    inputElement.name = selectElement.name;
+    inputElement.value = selectElement.value;
+    inputElement.className = selectElement.className;
+
+    // Replace the select element with the input element in the DOM
+    selectElement.parentNode.replaceChild(inputElement, selectElement);
+}
 
     </script>
 </head>
@@ -44,7 +57,13 @@ function submitForm() {
 <form id="queryForm" onsubmit="submitForm()" class="form-group">
     <div class="mb-3">
         <label for="queryInput" class="form-label">Enter Query:</label>
-        <input type="text" id="queryInput" name="query" class="form-control" required>
+        <select id="queryInput" name="query" class="form-control" onchange="changeToInput(this)">
+            <option value="">Change to input</option>
+<option>Classify these docs as one of : RFI/Market Research; Request for quote; Request For Proposal. Respond in one phrase.</option>
+            <!-- Add your options here --><option>Gather all contact info, email, addresses of Requester</option>
+            <option>Summarize the Requirements and Deliverables for this RFQ </option>
+        </select>
+
     </div>
     <div class="mb-3">
         <label for="jobIdInput" class="form-label">Job ID:</label>
