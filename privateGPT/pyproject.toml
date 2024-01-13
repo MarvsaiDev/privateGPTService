@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-langchain = "0.0.274"
+langchainmsai
 gpt4all = "1.0.8"
 chromadb = "0.4.12"
 llama-cpp-python = "0.1.81"

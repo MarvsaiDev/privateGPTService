@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 from typing import List
 
-from langchain.chains.retrieval_qa.base import BaseRetrievalQA
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import Document
+from  langchain.chains.retrieval_qa.base import BaseRetrievalQA
+from  langchain.chat_models import ChatOpenAI
+from  langchain.schema import Document
 
 import privateGPT.global_vars as constants
 from dotenv import load_dotenv
-from langchain.chains import RetrievalQA
-from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain.vectorstores import Chroma
+from  langchain.chains import RetrievalQA
+from  langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
+from  langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from  langchain.vectorstores import Chroma
 import openai
-from langchain.llms import GPT4All, LlamaCpp, AzureOpenAI, OpenAIChat
+from langchain_mistralai.chat_models import ChatMistralAI
+
+from  langchain.llms import GPT4All, LlamaCpp, AzureOpenAI, OpenAIChat
 import chromadb
 import os
 import argparse
@@ -75,7 +77,7 @@ def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 1
                 temperature= 0
             )
 
-    from langchain.prompts import PromptTemplate
+    from  langchain.prompts import PromptTemplate
     prompt_template = """Use the following pieces of context to answer the question at the end.
         '{context}'
         Question: {question}

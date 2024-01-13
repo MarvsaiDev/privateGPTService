@@ -1,6 +1,15 @@
 # privateGPT -- Modified by MarvSAI to test out integration with private OPENAI api from azure.
 It works fine. No implied gaurantees are given and this code is not used in our production service. https://ai-scan.xyz
+We made improvement to stuff colletion in langchain which is only avalable via our own pypi langchainmsai.
+To install you need to do sonething different after installation .
+namely goto your python env directory
 
+
+
+```shell
+cd pythonenv/lib/python3.XX/site-packages
+mv langchainmsai langchain
+```
 To try this code just add the azure variables you can find in privateGPT.py to your .env file.
 
 Ask questions to your documents without an internet connection, using the power of LLMs. 100% private, no data leaves your execution environment at any point. You can ingest documents and ask questions without an internet connection!
@@ -9,7 +18,7 @@ Ask questions to your documents without an internet connection, using the power 
 
 <img width="902" alt="demo" src="https://user-images.githubusercontent.com/721666/236942256-985801c9-25b9-48ef-80be-3acbb4575164.png">
 
-Built with [Azure Open AI] [LangChain](https://github.com/hwchase17/langchain), [LlamaIndex](https://www.llamaindex.ai/), [GPT4All](https://github.com/nomic-ai/gpt4all), [LlamaCpp](https://github.com/ggerganov/llama.cpp), [Chroma](https://www.trychroma.com/) and [SentenceTransformers](https://www.sbert.net/).
+Built with [Azure Open AI] [ langchainmsai](https://github.com/hwchase17/ langchainmsai), [LlamaIndex](https://www.llamaindex.ai/), [GPT4All](https://github.com/nomic-ai/gpt4all), [LlamaCpp](https://github.com/ggerganov/llama.cpp), [Chroma](https://www.trychroma.com/) and [SentenceTransformers](https://www.sbert.net/).
 
 # Environment Setup
 In order to set your environment up to run the code here, first install all requirements:
@@ -47,7 +56,7 @@ EMBEDDINGS_MODEL_NAME: SentenceTransformers embeddings model name (see https://w
 TARGET_SOURCE_CHUNKS: The amount of chunks (sources) that will be used to answer a question
 ```
 
-Note: because of the way `langchain` loads the `SentenceTransformers` embeddings, the first time you run the script it will require internet connection to download the embeddings model itself.
+Note: because of the way ` langchainmsai` loads the `SentenceTransformers` embeddings, the first time you run the script it will require internet connection to download the embeddings model itself.
 
 ## Test dataset
 This repo uses a [state of the union transcript](https://github.com/imartinez/privateGPT/blob/main/source_documents/state_of_the_union.txt) as an example.
@@ -123,11 +132,11 @@ The script also supports optional command-line arguments to modify its behavior.
 
 
 # How does it work?
-Selecting the right local models and the power of `LangChain` you can run the entire pipeline locally, without any data leaving your environment, and with reasonable performance.
+Selecting the right local models and the power of ` langchainmsai` you can run the entire pipeline locally, without any data leaving your environment, and with reasonable performance.
 
-- `ingest.py` uses `LangChain` tools to parse the document and create embeddings locally using `HuggingFaceEmbeddings` (`SentenceTransformers`). It then stores the result in a local vector database using `Chroma` vector store.
+- `ingest.py` uses ` langchainmsai` tools to parse the document and create embeddings locally using `HuggingFaceEmbeddings` (`SentenceTransformers`). It then stores the result in a local vector database using `Chroma` vector store.
 - `privateGPT.py` uses a local LLM based on `GPT4All-J` or `LlamaCpp` to understand questions and create answers. The context for the answers is extracted from the local vector store using a similarity search to locate the right piece of context from the docs.
-- `GPT4All-J` wrapper was introduced in LangChain 0.0.162.
+- `GPT4All-J` wrapper was introduced in  langchainmsai 0.0.162.
 
 # System Requirements
 

@@ -1,7 +1,7 @@
-langchain==0.0.274
+langchainmsai
 gpt4all==1.0.8
 chromadb==0.4.12
-llama-cpp-python==0.1.81
+llama-cpp-python
 urllib3==2.0.4
 PyMuPDF==1.23.1
 python-dotenv==1.0.0
@@ -18,3 +18,4 @@ PyQt6==6.5.0
 python-multipart
 pandas
 openpyxl
+langchain-mistralai
