@@ -60,7 +60,7 @@ def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 1
     dengine = 'gpt-35-16k'
     match lmodel_type:
         case "LlamaCpp":
-            llm = LlamaCpp(model_path=model_path, max_tokens=model_n_ctx, n_batch=model_n_batch, callbacks=callbacks, verbose=False)
+            llm = LlamaCpp(model_path=model_path, n_ctx=model_n_ctx, n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case "GPT4All":
             llm = GPT4All(model=model_path, max_tokens=model_n_ctx, backend='gptj', n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case 'OpenAIChat':
