@@ -37,7 +37,7 @@ if not load_dotenv():
 
 from .global_vars import CHROMA_SETTINGS
 import chromadb
-from chromadb.api.segment import API
+from chromadb.api import ClientAPI
 
 # Load environment variables
 persist_directory = os.environ.get('PERSIST_DIRECTORY')
@@ -173,7 +173,7 @@ def process_text_documents(text:str, metadata=None) -> List[Document]:
     documents = text_splitter.split_documents(documents)
     print(f"Split into {len(documents)} chunks of text (max. {chunk_size} tokens each)")
     return documents
-def batch_chromadb_insertions(chroma_client: API, documents: List[Document]) -> Generator[List[Document], None, None]:
+def batch_chromadb_insertions(chroma_client: ClientAPI, documents: List[Document]) -> Generator[List[Document], None, None]:
     """
     Split the total documents to be inserted into batches of documents that the local chroma client can process
     """
@@ -187,10 +187,9 @@ def does_vectorstore_exist(persist_directory: str, embeddings: HuggingFaceEmbedd
     """
     Checks if vectorstore exists
     """
-    db = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
-    if not db.get()['documents']:
-        return False
-    return True
+    if os.path.exists(os.path.join(persist_directory,'chroma.sqlite3')):
+        return True
+    return False
 
 
 
