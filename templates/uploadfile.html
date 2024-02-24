@@ -73,6 +73,7 @@ document.getElementById("loading").style.display = "block";
 name = name.trim();
 var checkbox = document.getElementById("perpagecheck");
 var perpagemsg = "yes";
+var filenamestr =  document.getElementById("filenameid").value
 if (checkbox.checked){
   perpagemsg = "yes";
 }
@@ -86,7 +87,7 @@ fetch('/extract_data/', {
   headers: {
     'Content-Type': 'application/json'
   },
-  body: JSON.stringify({query: name, jobid: strJobid, perpage: perpagemsg }) // replace with your actual data
+  body: JSON.stringify({query: name, jobid: strJobid, perpage: perpagemsg, filename: filenamestr }) // replace with your actual data
 })
 .then(response => response.blob())
 .then(blob => {

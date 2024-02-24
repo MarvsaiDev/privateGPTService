@@ -103,7 +103,7 @@ class ExtractionPrompt:
 
 
 ExtractionPrompt = ExtractionPrompt(Cara=carahasoft_dict,
-                                    DLT=dlt_dict, QUO=quo_dict, default=default_dict, raw=default_dict)
+                                    DLT=dlt_dict, QUO=quo_dict, default_plus=default_dict,default=default_dict, raw=default_dict)
 test = 'Extract Item No, PART_NO (MFG), Description, User Count (Qty), Quote Price (unit), Subscription Start Date, Subscription End Date from the data above into a ; separated csv file with   as newline. Do not include header'
 
 trainingText = """        'QUOTE NO:\n10/30/2023\n41495096\nCONFIDENTIAL\n5\nRSU-SMPLE\nRemote Support Concurrent User Cloud, Annual\nBeyondTrust Corporation - RSU-CLOUD\nStart Date: 12/01/2024\nEnd Date: 11/30/2025\n$2,170.36\n10\n$21,703.60\nOM\nOPTION YEAR 1 SUBTOTAL:\n$21,703.60\nOPTION YEAR 2\n'        

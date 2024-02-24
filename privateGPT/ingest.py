@@ -93,6 +93,10 @@ LOADER_MAPPING = {
 }
 
 
+def load_single_document_file_job(jobid: str, file:str) -> List[Document]:
+    filepath = os.path.join('jobs',jobid,file)
+    return load_single_document(filepath)
+
 def load_single_document(file_path: str) -> List[Document]:
     ext = "." + file_path.rsplit(".", 1)[-1].lower()
     if ext in LOADER_MAPPING:

@@ -1,34 +1,42 @@
 import multiprocessing
 import random
+import re
 from io import StringIO
-from typing import Optional
+from typing import Optional, List
 import logging as log
 import pandas as pd
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import JSONResponse
+from langchain.schema import Document
 from pydantic import BaseModel
 import asyncio
 
+from starlette.background import BackgroundTasks
 from starlette.requests import Request
 from starlette.responses import FileResponse
 from starlette.staticfiles import StaticFiles
 
 import route_ingest
+from privateGPT.ingest import load_single_document, load_single_document_file_job
 from privateGPT.privateGPT import answer_query
 from fastapi.templating import Jinja2Templates
 
 from privateGPT.util import merge_or_return_larger, clean_df
 from prompt_res.prompts import columns, ExtractionPrompt, PRICE_COL, IGNORE_COL, IGNORE_COL_IDX_KEY, PRICE_COL_KEY, \
     TOTAL_PROMPT
+from try_open_ai import gpt3_call
+from util import get_query_request_obj
 
-app = FastAPI()
+app = FastAPI(debug=True)
 app.include_router(route_ingest.router, prefix='/ingest')
 
 # Assume that 'answer_query' function is defined here
 templates = Jinja2Templates(directory="templates")
 LOGFORMAT = "%(asctime)s:%(levelname)s:%(filename)s\'%(lineno)d:%(funcName)s:%(message)s"
 
+#     (azure_endpoint="https://healthsummary.openai.azure.com/",
+# api_version="2023-07-01-preview",api_key=API_KEY_35)
 log.basicConfig(filename='./aiserv.log', format=LOGFORMAT, level=log.INFO)
 
 class QueryRequest(BaseModel):
@@ -37,6 +45,7 @@ class QueryRequest(BaseModel):
     perpage: Optional[str] = 'no'
     meta: Optional[dict]
     output: Optional[str]='xlsx'
+    filename: Optional[str] = ''
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -74,9 +83,16 @@ def get_df(answer:str, cols_array, _sep=';', headerList = ['PART_NO', 'Part No',
 @app.post("/query_sync/")
 def sync_answer_query(request: QueryRequest):
     global gcols_array
-    answer, docs , qs = answer_query(request.query, 'jobs/'+request.jobid, metadata={'splitData':2 if request.perpage=='split' else 5 if request.perpage=='yes' else 0, 'sortByPage': True})
+    answer, docs , qs = answer_query(request.query, 'jobs/'+request.jobid, metadata={'callback_oneshot': gpt3_call if 'oneshot' in request.meta else None,
+                                                                                     'splitData':2 if request.perpage=='split' else 5 if request.perpage=='yes' else 0,
+                                                                                     'sortByPage': True})
+    if request.meta:
+        if 'addedPrompt' in request.meta and 'ignore' in request.meta['addedPrompt']:
+            answer = re.sub(";[a-z];", ";", answer)
+
     parts = answer.split('|;|')
     filename = ''
+
     cols_array = gcols_array
     col_idx = []
     price_col = PRICE_COL
@@ -136,6 +152,7 @@ def sync_answer_query(request: QueryRequest):
             try:
                 if len(df.columns)>len(cols_array):
                     df = df.iloc[:,:len(cols_array)]
+                #     TODO find dummy character that makes length longer
                 if df.shape[1] < len(cols_array):
                     log.warning('Guessed Col Names')
                     df.columns = cols_array[:df.shape[1]]
@@ -186,21 +203,26 @@ async def async_answer_query(request: QueryRequest):
     return {"answer": answer, "docs": docs}
 
 
+async def query_colmns(d:List[Document]):
+    pass
 @app.post("/extract_data/")
-async def extractdata(request: QueryRequest):
+async def extractdata(request: QueryRequest, b:BackgroundTasks):
     log.info('extractdata')
-    ansdict = await extractdata_json( request)
+    # check if the correct prompt is being used
+    list_docs = load_single_document_file_job(request.jobid, request.filename)
+    r = get_query_request_obj(list_docs[0].page_content, request)
+    # r can be the same as request
+    ansdict = await extractdata_json(r)
     return FileResponse(ansdict['filename'])
 
 @app.post("/extract_data_json/")
 async def extractdata_json(request: QueryRequest):
     log.info('extractdata')
-    if request.output=='xlsx':
+    if request.output=='xlsx' and 'Extract Line' not in request.query:
         if 'Carah' in request.query:
             secondKey = 'Atlassian' if 'Atlassian' in request.query else ''
             if ' Entrust' in request.query:
                 secondKey = 'Entrust'
-
             querydict = ExtractionPrompt['Cara', secondKey]
             request.query = querydict['prompt']
 
