@@ -43,7 +43,7 @@ class QueryRequest(BaseModel):
     query: str
     jobid: Optional[str]=''
     perpage: Optional[str] = 'no'
-    meta: Optional[dict]
+    meta: Optional[dict]={}
     output: Optional[str]='xlsx'
     filename: Optional[str] = ''
 
@@ -83,7 +83,7 @@ def get_df(answer:str, cols_array, _sep=';', headerList = ['PART_NO', 'Part No',
 @app.post("/query_sync/")
 def sync_answer_query(request: QueryRequest):
     global gcols_array
-    answer, docs , qs = answer_query(request.query, 'jobs/'+request.jobid, metadata={'callback_oneshot': gpt3_call if 'oneshot' in request.meta else None,
+    answer, docs , qs = answer_query(request.query, 'jobs/'+request.jobid, metadata={'callback_oneshot': gpt3_call if request.meta and 'oneshot' in request.meta else None,
                                                                                      'splitData':2 if request.perpage=='split' else 5 if request.perpage=='yes' else 0,
                                                                                      'sortByPage': True})
     if request.meta:
@@ -191,7 +191,7 @@ def sync_answer_query(request: QueryRequest):
 
         except Exception  as e:
             log.error(str(e))
-            print('Exception:'+str(e.__traceback__.tb_lineno))
+            print(f'Exception:{str(e)}'+str(e.__traceback__.tb_lineno))
             raise HTTPException(status_code=404,detail=str(e))
     return {"answer": answer, "filename": filename, "docs": docs}
 
@@ -202,9 +202,10 @@ async def async_answer_query(request: QueryRequest):
 
     return {"answer": answer, "docs": docs}
 
+@app.get("/get_total")
+async def totalr(request:Request):
+    return templates.TemplateResponse('quote_total.html', {'request': request})
 
-async def query_colmns(d:List[Document]):
-    pass
 @app.post("/extract_data/")
 async def extractdata(request: QueryRequest, b:BackgroundTasks):
     log.info('extractdata')

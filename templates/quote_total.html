@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File URL Uploader</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.0/css/dataTables.dataTables.css">
+<script src="https://cdn.datatables.net/2.0.0/js/dataTables.js"></script>
+
+</head>
+<body>
+    <h1>Got totals from file path</h1>
+<div style="display: flex; align-items: center;">
+    <textarea id="fileInput" rows="2" cols="60" style="resize: none;"></textarea>
+    <button onclick="uploadFile()">Upload</button>
+</div>
+    <div id="result"></div>
+
+    <script>
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.value;
+
+            if (!file) {
+                alert('Please select a file.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file_path', file); // Use the correct JSON variable here
+
+            try {
+                const response = await fetch('/ingest/get_total_uri', {
+                    method: 'POST',
+                    body: JSON.stringify({ file_path: file }), // Correctly format the JSON data
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayResult(data);
+                } else {
+                    alert('Error uploading file. Please try again.');
+                }
+            } catch (error) {
+                console.error('An error occurred:', error);
+            }
+        }
+
+function displayResult(data) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = `
+        <table id="total_table">
+            <thead><tr>
+                <th>Attribute</th>
+                <th>Value</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Total:</td>
+                <td><strong>${data.total}</strong></td>
+            </tr>
+            <tr>
+                <td>Quote Expiry:</td>
+                <td>${data.quote_expiry}</td>
+            </tr>
+            <tr>
+                <td>Issue Date:</td>
+                <td>${data.issue_date}</td>
+            </tr>
+            </tbody>
+        </table>
+    `;
+
+    // Apply conditional formatting based on data values (you can customize colors here)
+    const totalValue = parseFloat(data.total);
+    if (totalValue >= 1000) {
+        resultDiv.querySelector('td:nth-child(2)').style.backgroundColor = 'green';
+    } else if (totalValue >= 500) {
+        resultDiv.querySelector('td:nth-child(2)').style.backgroundColor = 'yellow';
+    } else {
+        resultDiv.querySelector('td:nth-child(2)').style.backgroundColor = 'red';
+    }
+     $('#total_table').DataTable({
+        paging: false, // Disable pagination
+        searching: true, // Disable search box
+        ordering: false, // Disable sorting
+        info: false // Disable info display
+    });
+}
+
+    </script>
+</body>
+</html>

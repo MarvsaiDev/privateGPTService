@@ -30,6 +30,7 @@ from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
 from langchain.docstore.document import Document
 
 from privateGPT.msg_loader import MsgLoader
+from privateGPT.util import _extract_page_number_meta
 
 if not load_dotenv():
     print("Could not load .env file or it is empty. Please check if it exists and is readable.")
@@ -92,10 +93,10 @@ LOADER_MAPPING = {
     # Add more mappings for other file extensions and loaders as needed
 }
 
-
 def load_single_document_file_job(jobid: str, file:str) -> List[Document]:
     filepath = os.path.join('jobs',jobid,file)
     return load_single_document(filepath)
+
 
 def load_single_document(file_path: str) -> List[Document]:
     ext = "." + file_path.rsplit(".", 1)[-1].lower()
@@ -141,6 +142,40 @@ def reptext():
     replacement = f"QUOTE DATE:\nQUOTE NO:\n{date}\n{quote_no}\n"
     return replacement
 
+
+def not_terms(d:Document):
+    def contains_general_terms(input_string):
+        # Define the regular expression pattern for variations of "General Terms:"
+        pattern = r"(General Terms:|General Conditions:|Standard Terms:|Common Terms:|Universal Terms:)"
+        # Search for the pattern in the input string
+        match = re.search(pattern, input_string)
+        # Return True if the pattern is found, else return False
+        return match
+    if contains_general_terms(d.page_content) and _extract_page_number_meta(d)>10:
+        return False
+    return True
+
+
+def find_terms_page(docs):
+    for d in docs:
+        if not not_terms(d):
+            return d
+    return None
+
+
+def page_less_than(d, page):
+    return _extract_page_number_meta(d)<page
+
+
+def remove_general_terms(docs:List[Document]):
+    term_page = find_terms_page(docs)
+    if term_page:
+        page = _extract_page_number_meta(term_page)
+    else:
+        page = len(docs)+2
+    list_docs = [d for d in docs if page_less_than(d, page)]
+    return list_docs
+
 def process_documents(ignored_files: List[str] = [], source_folder=source_directory) -> List[Document]:
     """
     Load documents and split in chunks
@@ -148,6 +183,8 @@ def process_documents(ignored_files: List[str] = [], source_folder=source_direct
     print(f"Loading documents from {source_folder}")
     documents = load_documents(source_folder, ignored_files)
     documents = list(documents)
+    print(f'Pages {len(documents)}')
+    documents = remove_general_terms(documents)
     if not documents:
         print("No new documents to load")
         raise(Exception('No New Docs to load'))

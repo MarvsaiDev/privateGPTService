@@ -59,7 +59,7 @@ def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 1
     callbacks = []
 
     # Prepare the LLM
-    dengine = 'gpt-35-16k'
+    dengine = model_subtype
     match lmodel_type:
         case "LlamaCpp":
             llm = LlamaCpp(model_path=model_path, n_ctx=model_n_ctx, n_batch=model_n_batch, callbacks=callbacks, verbose=False)

@@ -17,12 +17,13 @@
   font-family: sans-serif;
 }
 </style>
+
 </head>
 <body>
 
 <div class="container">
   <h3 class="my-4">Drag and Drop Software Vendor Quote</h3>
-      <button onClick="window.location.reload();">New Quote</button>
+      <button class="btn btn-warning rounded-4" onClick="window.location.reload();">New Quote</button>
     <h6>Conversion into Excel with AI</h6>
 
   <div id="drop_zone" class="border border-secondary rounded p-4 mb-4" style="width:800px; height:300px; box-shadow: 5px 10px 8px 10px #888888;">
@@ -37,7 +38,21 @@
 <br>*(If quotes missing try toggling this option to ON or OFF. When unticked all the pages will be processed in one go, may throw error but be more accurate)
   </div>
 
-  <p id="upload_info"></p>
+<div class="container" id="upload_info" style="display: none;">
+    <p>Filename: <span id="filename"></span>, Job ID: <span id="job"></span></p>
+    <ul>
+        <li>
+            <button id="downloadbut" class="btn btn-primary rounded-4" onclick="downloadFile(data.filename, data.job)">
+                Download Excel File
+            </button>
+        </li>
+        <li>
+            <button class="btn btn-success rounded-4" onclick="gotoqchat()">
+                Query Document
+            </button>
+        </li>
+    </ul>
+</div>
 
   <!-- Loading spinner -->
   <div id="loading" style="display: none;">
@@ -46,6 +61,14 @@
 </div>
 
 <script>
+
+ var jobname = document.getElementById("jobid").value;
+
+  var filenameElem = document.getElementById("filenameid").value;
+var data = {
+  "filename": filenameElem,
+  "job": jobname
+};
 // Generate a random job id
 document.getElementById("jobid").value = Math.random().toString(36).substring(2, 15);
 
@@ -102,10 +125,11 @@ fetch('/extract_data/', {
   document.getElementById("loading").style.display = "none";
   document.body.appendChild(a);
   a.click();
-
+    document.getElementById("downloadbut").disabled = false;
   // cleanup
   window.URL.revokeObjectURL(url);
   document.body.removeChild(a);
+   document.getElementById("upload_info").style.display = "none";
 })
 .catch((error) => {
  document.getElementById("loading").style.display = "none";
@@ -118,17 +142,17 @@ window.location='qchat/?jobid='+document.getElementById("jobid").value;
 }
 
 function showDown(){
- document.getElementById("upload_info").innerHTML='';
- var jobname = document.getElementById("jobid").value;
+ document.getElementById("upload_info")
+ jobname = document.getElementById("jobid").value;
 
-  var filenameElem = document.getElementById("filenameid").value;
-var data = {
+  ilenameElem = document.getElementById("filenameid").value;
+ data = {
   "filename": filenameElem,
   "job": jobname
 };
  var docbuttons = document.getElementById("upload_info");
- docbuttons.innerHTML = '<p>Filename: ' + data.filename + ", Job ID: " + data.job+"</p> <ul><li><button id=\"downloadbut\" onclick=\"downloadFile("+"\'"+data.filename+"\'" +",\'" +data.job+'\');\">Download Excel File</button></li>';
- docbuttons.innerHTML += '<li><button onclick="gotoqchat();"> Query Document </button></li></ul>';
+   docbuttons.style.display = "block";
+   document.getElementById("downloadbut").disabled = false;
 
 }
 
