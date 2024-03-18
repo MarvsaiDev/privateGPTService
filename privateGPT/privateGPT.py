@@ -12,7 +12,7 @@ from  langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
 from  langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from  langchain.vectorstores import Chroma
 import openai
-from langchain_mistralai.chat_models import ChatMistralAI
+# from langchain_mistralai.chat_models import ChatMistralAI
 
 from  langchain.llms import GPT4All, LlamaCpp, AzureOpenAI, OpenAIChat
 import chromadb
