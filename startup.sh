@@ -1,6 +1,8 @@
 # pip install -r requirements.txt
 #echo hi > /home/hellofromapp2.txt
 val=$(python findpath.py)
+mkdir db
+mkdir jobs
 echo $val
 pushd $val  # This will navigate to the directory stored in 'val' and save the current directory.
 mv langchainmsai langchain
