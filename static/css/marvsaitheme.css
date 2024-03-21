@@ -1,0 +1,51 @@
+.btn-custom-yellow {
+    color: #212529;
+    background-color: #ffc107; /* Yellow color */
+    border-color: #ffc107; /* Yellow color */
+}
+.btn-custom-red {
+    color: #212529;
+    background-color: #fd0019; /* Yellow color */
+}
+.mainHeadLine {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background-image: linear-gradient(to left, #868074,#fcac0e);
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+}
+.msai-btn-menu:hover {
+  background-color: orange;
+  border-color: #ddd;
+}
+.msai-btn-menu {
+  border-radius: 30px;
+  padding: 3px 5px;
+  border: solid 1px #444;
+  font-size: 14px;
+  background-repeat: no-repeat;
+  background-position: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.4s ease;
+}
+.msai-btn:hover {
+  background-color: red;
+  border-color: #ddd;
+}
+.msai-btn {
+  border-radius: 30px !important;
+  padding: 12px 20px;
+  border: solid 2px #444;
+  font-size: 14px;
+  background-repeat: no-repeat;
+  background-position: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  margin-left: 4px !important;
+}
+
+.text-left {text-align: left !important;}
+.fsm {font-size: 12px;}

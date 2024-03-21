@@ -1,7 +1,4 @@
 langchainmsai
-fastapi[all]==0.99.1
-#gpt4all==1.0.8
-#llama-cpp-python
 urllib3
 PyMuPDF==1.23.1
 python-dotenv==1.0.0
@@ -18,10 +15,13 @@ python-multipart
 pandas==2.1.4
 openpyxl==3.1.2
 xlsxwriter==3.1.9
+fastapi[all]==0.99.1
 pypdf>=3.16.4
 httpx
 Jinja2
 chromadb==0.4.22
 pydantic==1.10.14
 tiktoken
-pysqlite3-binary
+#pysqlite3-binary
+#gpt4all==1.0.8
+#llama-cpp-python
