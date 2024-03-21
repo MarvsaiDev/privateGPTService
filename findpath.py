@@ -3,4 +3,4 @@ import sys;
 #print("\n".join(sys.path))
 for x in sys.path:
     if 'site-package' in x:
-        print(x)
+        print(x.split(' ')[0])
