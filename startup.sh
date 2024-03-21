@@ -1,6 +1,6 @@
 #!/bin/bash
 pip install -r requirements.txt
-echo hi > /home/hellofromapp2.txt
+echo hi > /home/hellofromapp4.txt
 val=$(python findpath.py)
 cdir=$(pwd)
 mkdir db
