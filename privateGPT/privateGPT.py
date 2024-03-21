@@ -33,6 +33,8 @@ persist_directory = os.environ.get('PERSIST_DIRECTORY')
 
 model_type = os.environ.get('MODEL_TYPE')
 model_subtype = os.environ.get('MODEL_SUBTYPE', 'gpt-35-16k' )
+print(f'model sub ::: {model_subtype}')
+print(f'openai.api_base :::: {openai.api_base}')
 model_path = os.environ.get('MODEL_PATH') #model name
 model_n_ctx = os.environ.get('MODEL_N_CTX')
 model_n_batch = int(os.environ.get('MODEL_N_BATCH',8))
