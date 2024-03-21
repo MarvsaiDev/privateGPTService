@@ -34,7 +34,7 @@ from privateGPT.util import _extract_page_number_meta
 
 if not load_dotenv():
     print("Could not load .env file or it is empty. Please check if it exists and is readable.")
-    exit(1)
+    # exit(1)
 
 from .global_vars import CHROMA_SETTINGS
 import chromadb

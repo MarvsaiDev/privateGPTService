@@ -1,5 +1,5 @@
-# pip install -r requirements.txt
-#echo hi > /home/hellofromapp2.txt
+pip install -r requirements.txt
+echo hi > /home/hellofromapp2.txt
 val=$(python findpath.py)
 mkdir db
 mkdir jobs

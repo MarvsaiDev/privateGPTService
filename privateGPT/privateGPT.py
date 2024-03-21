@@ -23,8 +23,8 @@ import logging as log
 openai.api_type = "azure"
 
 if not load_dotenv():
-    print("Could not load .env file or it is empty. Please check if it exists and is readable.")
-    exit(1)
+    print("WARNING: Could not load .env file or it is empty. Please check if it exists and is readable.")
+    # exit(1)
 openai.api_base = os.environ['OPENAI_API_BASE']
 openai.api_version = os.environ['OPENAI_API_VERSION']
 openai.api_key = os.environ['OPENAI_API_KEY']

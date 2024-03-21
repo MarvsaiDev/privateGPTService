@@ -1,7 +1,6 @@
 langchainmsai
 fastapi==0.99.1
 #gpt4all==1.0.8
-chromadb==0.4.22
 #llama-cpp-python
 urllib3
 PyMuPDF==1.23.1
@@ -22,3 +21,5 @@ xlsxwriter==3.1.9
 pypdf>=3.16.4
 httpx
 Jinja2
+chromadb==0.4.22
+pydantic==1.10.14
