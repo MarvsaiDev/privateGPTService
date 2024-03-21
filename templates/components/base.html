@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <style>
+.notificationStyle {
+    background-color:#ef927d;
+}
+/* .notificationsIcon {
+    background-color:#b9b9b9;
+    color: black;
+} */
+.notificationsIcon:hover {
+    color:red;
+}
+.notTxt {
+    color: white;
+    font-size:11px;
+    position: absolute;
+    padding:3px;
+    top: 3px;
+    left:8px;
+    border-radius: 50px;
+    margin-right: 5px;
+    }
+
+.mainHeadLine {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background-image: linear-gradient(to left, #868074,#fcac0e);
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+.text-left {text-align: left !important;}
+.fsm {font-size: 12px;}
+    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="nofoobar.com" content="Nofoobar">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+      <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <link rel="stylesheet" href="/static/css/marvsaitheme.css">
+    {% block title %}
+    {% endblock %}
+    <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "ip5rircrtt");
+</script>
+</head>
+
+<body>
+    {% include "components/navbar.html" %}
+    {% block content %}
+    {% endblock %}
+    <div id="notificationModal" class="modal shadow-lg">
+        <div class="modal-dialog">
+            <div class="modal-content bg-white">
+                <!-- <span class="d-flex justify-content-center mt-2">
+                    <button class="modelClosing text-center btn btn-danger" onclick="closeModal()">&times;</button>
+                </span> -->
+            <div id="modalContent" class="my-3 px-5 container text-center"></div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal()" class="modelClosing btn btn-danger" data-dismiss="modal">Close</button>
+            </div>
+            </div>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    {% block scripts %}
+    {% endblock %}
+
+    {% if username is defined %}
+    <script>
+        // const currentUrl = window.location.origin
+        const apiUrl = '/v1/notifications/user-notifications/';
+
+        async function fetchNotifications() {
+
+        var notificationsDropDown = document.querySelector('#nots_div');
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const notifications = await response.json();
+            if (notifications != "None") {
+
+                for (let i = 0; i < notifications.length; i++) {
+                    const loopCounter = i;
+                    const notification = notifications[i];
+
+                    notificationsDropDown.innerHTML += `
+                        <li><a onclick="runSeen(${notification.id})" class="dropdown-item lis" id="notification${loopCounter}" href="#">${notification.comment}</a></li>
+                    `;
+                    document.querySelector('#notsTxt').classList.remove("d-none");
+                }
+            } else {notificationsDropDown.innerHTML += `<li><a class="dropdown-item" id="noNotification" href="#">No Notifications Found!</a></li>`}
+        } catch (error) {
+            notificationsDropDown.innerHTML += `<li><a class="dropdown-item" id="noNotification" href="#">No Notifications Found!</a></li>`
+            console.error('Error fetching notifications:', error.message);
+        }
+        };
+
+        document.addEventListener('DOMContentLoaded', fetchNotifications);
+
+        async function runSeen(notificationId) {
+        const updateUrl = '/v1/notifications/seen_notification/';
+        try {
+            const response = await fetch(updateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ notificationId }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const notificationObj = await response.json();
+            console.log('Notification seen successfully');
+            const notificationComment = notificationObj.comment
+            const notificationUrl = notificationObj.url
+            const notificationDate = new Date(notificationObj.date);
+            document.querySelector('#notsTxt').classList.add("d-none");
+            showModal(notificationId,notificationComment, notificationUrl, notificationDate);
+        } catch (error) {
+            console.error('Error updating notification:', error.message);
+        }
+    }
+    function showModal(notificationId, notificationComment, notificationUrl, notificationDate) {
+
+        document.getElementById('modalContent').innerHTML = `<a id="${notificationId}" href="${notificationUrl}">${notificationComment}</a> <br><small class="fsm" ><b>Dated:</b> ${notificationDate.toLocaleDateString()}</small>`
+
+        const modal = document.getElementById('notificationModal');
+        modal.style.display = 'flex';
+    }
+<!--  function showNotification() {-->
+<!--    // Check if the browser supports notifications-->
+<!--    if (!("Notification" in window)) {-->
+<!--      alert("This browser does not support desktop notification");-->
+<!--    } else if (Notification.permission === "granted") {-->
+<!--      // If notification permission is granted, create a notification-->
+<!--      createNotification();-->
+<!--    } else {-->
+<!--      // Ask the user for permission to show notifications-->
+<!--      Notification.requestPermission().then(function (permission) {-->
+<!--      console.log('requested');-->
+<!--        if (permission === "granted") {-->
+<!--          createNotification();-->
+<!--        }-->
+<!--      });-->
+<!--    }-->
+<!--  }-->
+
+<!--  function createNotification() {-->
+<!--    // Create a new notification-->
+<!--    var notification = new Notification("Hello, World!", {-->
+<!--      body: "This is a notification example using Notifications API",-->
+<!--    });-->
+<!--    }-->
+
+    function closeModal() {
+        const modal = document.getElementById('notificationModal');
+        modal.style.display = 'none';
+    }
+
+    </script>
+    {% else %}
+
+    <script>console.log('Notifications Not Found');</script>
+
+    {% endif %}
+
+
+</body>
+</html>
