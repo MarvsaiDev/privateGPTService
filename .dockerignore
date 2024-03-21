@@ -1,0 +1,10 @@
+.git
+__pycache__
+venv
+newnev
+*.pyc
+*.pyo
+*.pyd
+db
+jobs
+models
