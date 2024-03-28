@@ -1,7 +1,7 @@
 .git
 __pycache__
 venv
-newnev
+newenv
 *.pyc
 *.pyo
 *.pyd
