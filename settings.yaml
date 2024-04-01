@@ -17,6 +17,4 @@ EMBEDDINGS_MODEL_NAME_cpu: jinaai/jina-embedding-b-en-v1
 EMBEDDINGS_MODEL_NAME_gtr: gtr-t5-large
 TEST_EMBEDDINGS_MODEL_NAME: jinaai/jina-embedding-s-en-v1
 EMBEDDINGS_MODEL_NAMENEWCHINESE: BAAI/bge-large-en-v1.5
-OPENAI_API_KEY: acb8193909cd47ef91a0b9b22adf728b
-OPENAI_API_VERSION: 2024-02-15-preview
-OPENAI_API_BASE: https://healthscanneruk.openai.azure.com/
+
