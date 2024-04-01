@@ -5,6 +5,16 @@ from typing import List
 import pandas as pd
 from langchain.docstore.document import Document
 
+from privateGPT.env_config import EnvironmentConfig
+
+
+def load_yaml_env():
+    return EnvironmentConfig('settings.yaml')
+
+    # Example: Access the environment variable
+    # print(f"OPENAI_API_KEY: {os.environ.get('OPENAI_API_KEY')}")
+
+
 def _extract_page_number_meta(s: Document) -> int:
     # Use regex to find the page number in the string
     page = s.metadata.get('page', None)
@@ -17,14 +27,14 @@ def _extract_page_number_meta(s: Document) -> int:
 def prepare_dir(job_uuid, projpath='', rootdir='./'):
     error = None
     try:
-        fullprojpath = rootdir + os.path.sep + job_uuid
+        fullprojpath = job_uuid
         os.mkdir(fullprojpath)
     except Exception as e:
         error = str(e)
         log.info('ignoring base user directory if it exists' + str(fullprojpath))
     try:
         if projpath:
-            fullprojpath = rootdir + os.path.sep + projpath + os.path.sep + job_uuid
+            fullprojpath = projpath + os.path.sep + job_uuid
             log.info('making sure user job directory exists')
             os.mkdir(fullprojpath)
     except Exception as e:

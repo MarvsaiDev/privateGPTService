@@ -1,8 +1,10 @@
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from chromadb.config import Settings
 
-load_dotenv()
+from privateGPT.util import load_yaml_env
+
+load_yaml_env()
 
 # Define the folder for storing database
 PERSIST_DIRECTORY = os.environ.get('PERSIST_DIRECTORY')

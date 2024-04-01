@@ -23,6 +23,7 @@ chromadb==0.4.22
 pydantic==1.10.14
 tiktoken
 uvicorn
-#pysqlite3-binary
+pysqlite3-binary
+pyyaml
 #gpt4all==1.0.8
 #llama-cpp-python

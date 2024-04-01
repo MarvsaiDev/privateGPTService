@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
       <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/marvsaitheme.css">
+
     <meta charset="UTF-8">
     <title>Query Sync Form</title>
     <script>
@@ -53,36 +55,40 @@ function changeToInput(selectElement) {
     </script>
 </head>
 <body>
-    <h1>Query Sync Form</h1>
+    <h1>Document(s) analysis form</h1>
 <form id="queryForm" onsubmit="submitForm()" class="form-group">
     <div class="mb-3">
         <label for="queryInput" class="form-label">Enter Query:</label>
-        <select id="queryInput" name="query" class="form-control" onchange="changeToInput(this)">
+        <div class="row">
+    <div class="col-md-8">
+        <select id="queryInput" name="query" class="form-control msai-btn-menu" onchange="changeToInput(this)">
             <option value="">Change to input</option>
 <option>Classify these docs as one of : Quote, Price, RFQ, Details. Respond in one phrase.</option>
             <!-- Add your options here --><option>Gather all contact info, email, addresses of Requester</option>
+            <option>Summarize the Diseases, Diagnosis and most important history</option>
             <option>Summarize the Requirements and Deliverables for this RFQ </option>
         </select>
-
+</div></div>
     </div>
     <div class="mb-3">
-        <label for="jobIdInput" class="form-label">Job ID:</label>
-        <input type="text" id="jobIdInput" name="jobid" class="form-control">
+        <label for="jobIdInput" class="form-label">Job ID:</label><br>
+        <input type="text" id="jobIdInput" name="jobid" class="form-control-sm chatTextArea">
     </div>
     <div class="mb-3">
-        <label for="perPageInput" class="form-label">Per Page:</label>
-        <input type="text" id="perPageInput" name="perpage" value="no" class="form-control">
+        <label for="perPageInput" class="form-label">Per Page:</label><br/>
+        <input type="text" id="perPageInput" name="perpage" value="no" class="form-control-sm chatTextArea">
     </div>
     <div class="mb-3">
-        <label for="outputInput" class="form-label">Output:</label>
-        <input type="text" id="outputInput" name="output" value="text" class="form-control">
+        <label for="outputInput" class="form-label">Output:</label><br>
+        <input type="text" id="outputInput" name="output" value="text" class="form-control-sm chatTextArea">
     </div>
-    <button type="submit" class="btn btn-primary">Submit Query</button>
+    <button type="submit" class="btn msai-btn btn-primary">Submit Query</button>
 </form>
 
     <br>
     <label for="answerOutput">Answer:</label>
-    <textarea rows="10" cols="200" id="answerOutput" rows="4" cols="50" readonly></textarea>
+    <br>
+    <textarea style="width: 100%" rows="30" cols="*" id="answerOutput" readonly class="chatTextAreaAns"></textarea>
 <script>
     window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);

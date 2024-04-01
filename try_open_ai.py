@@ -3,15 +3,15 @@ import os
 from functools import partial
 
 import openai
-from dotenv import load_dotenv
 
+from privateGPT.util import load_yaml_env
 from prompt_res.list_prompts import get_format_definitions
 from prompt_res.prompts import columns, columns_dlt, ExtractionPrompt
 col_lists = get_format_definitions('columns')
 
-if not load_dotenv():
+if not load_yaml_env():
     print("Could not load .env file or it is empty. Please check if it exists and is readable.")
-    exit(1)
+
 openai.api_base = os.environ['OPENAI_API_BASE']
 openai.api_version = os.environ['OPENAI_API_VERSION']
 openai.api_key = os.environ['OPENAI_API_KEY']

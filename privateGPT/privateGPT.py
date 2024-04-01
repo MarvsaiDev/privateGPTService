@@ -6,7 +6,6 @@ from  langchain.chat_models import ChatOpenAI
 from  langchain.schema import Document
 
 import privateGPT.global_vars as constants
-from dotenv import load_dotenv
 from  langchain.chains import RetrievalQA
 from  langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
 from  langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
@@ -20,31 +19,54 @@ import os
 import argparse
 import time
 import logging as log
+
+from privateGPT.env_config import EnvironmentConfig
+from privateGPT.util import load_yaml_env
+
 openai.api_type = "azure"
 
-if not load_dotenv():
+env_config = load_yaml_env()
+if not env_config:
     print("WARNING: Could not load .env file or it is empty. Please check if it exists and is readable.")
     # exit(1)
-openai.api_base = os.environ['OPENAI_API_BASE']
-openai.api_version = os.environ['OPENAI_API_VERSION']
-openai.api_key = os.environ['OPENAI_API_KEY']
-embeddings_model_name = os.environ.get("EMBEDDINGS_MODEL_NAME")
-persist_directory = os.environ.get('PERSIST_DIRECTORY')
+# openai.api_base = os.environ['OPENAI_API_BASE']
+# openai.api_version = os.environ['OPENAI_API_VERSION']
+# openai.api_key = os.environ['OPENAI_API_KEY']
+embeddings_model_name = None
+persist_directory = None
 
-model_type = os.environ.get('MODEL_TYPE')
-model_subtype = os.environ.get('MODEL_SUBTYPE', 'gpt-35-16k' )
-print(f'model sub ::: {model_subtype}')
-print(f'openai.api_base :::: {openai.api_base}')
-model_path = os.environ.get('MODEL_PATH') #model name
-model_n_ctx = os.environ.get('MODEL_N_CTX')
-model_n_batch = int(os.environ.get('MODEL_N_BATCH',8))
-target_source_chunks = int(os.environ.get('TARGET_SOURCE_CHUNKS',4))
+model_type = None
+model_subtype = None
 
+model_path = None
+model_n_ctx = None
+model_n_batch = None
+target_source_chunks = None
 CHROMA_SETTINGS = constants.CHROMA_SETTINGS
 qa_system = None
+def redefine_globals():
+    global embeddings_model_name, model_path, persist_directory, model_type, model_subtype, model_n_ctx, model_n_batch, target_source_chunks, qa_system
+    openai.api_base = env_config.config.get("OPENAI_API_BASE")
+    openai.api_version = env_config.config.get("OPENAI_API_VERSION")
+    openai.api_key = env_config.config.get("OPENAI_API_KEY")
+    embeddings_model_name = env_config.config.get("EMBEDDINGS_MODEL_NAME")
+    persist_directory = env_config.config.get("PERSIST_DIRECTORY")
+    model_type = env_config.config.get("MODEL_TYPE")
+    model_subtype = env_config.config.get("MODEL_SUBTYPE", "gpt-35-16k")
+    model_path = env_config.config.get("MODEL_PATH")
+    model_n_ctx = env_config.config.get("MODEL_N_CTX")
+    model_n_batch = int(env_config.config.get("MODEL_N_BATCH", 8))
+    target_source_chunks = int(env_config.config.get("TARGET_SOURCE_CHUNKS", 4))
+    qa_system = None
+    print(f'model sub ::: {model_subtype}')
+    print(f'openai.api_base :::: {openai.api_base}')
+redefine_globals()
+
 def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 10)->BaseRetrievalQA:
     # Parse the command line arguments
     # args = parse_arguments()
+    if '32' in model_subtype:
+        numpages = numpages*2
     global persist_directory
     if not persistDir:
         persistDir = persist_directory
@@ -56,7 +78,10 @@ def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 1
     nofiles = os.listdir(persistDir)
     no_of_pdfs = sum(['pdf' in nof for nof in nofiles])
     db = Chroma(persist_directory=persistDir, embedding_function=embeddings, client_settings=CHROMA_SETTINGS, client=chroma_client)
-    retriever = db.as_retriever(search_type='similarity_score_threshold',search_kwargs={'k':numpages,'score_threshold':0.0001}) #search_kwargs={"k": target_source_chunks})
+    if 'GPT4' in model_subtype:
+        retriever = db.as_retriever(search_type='mmr',search_kwargs={'k':numpages}) #search_kwargs={"k": target_source_chunks})
+    else:
+        retriever = db.as_retriever(search_type='similarity_score_threshold',search_kwargs={'k':numpages,'score_threshold':0.0001}) #search_kwargs={"k": target_source_chunks})
     # activate/deactivate the streaming StdOut callback for LLMs
     callbacks = []
 

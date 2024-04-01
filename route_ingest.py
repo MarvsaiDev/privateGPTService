@@ -5,6 +5,7 @@ import os
 
 from starlette.responses import FileResponse
 
+from config import JOB_DIR
 from privateGPT import ingest
 from privateGPT.ingest import text_main
 from privateGPT.util import prepare_dir
@@ -51,13 +52,14 @@ def add_text(
 
 @router.post("/upload/")
 async def upload_files(jobid: str = Form(...), file: UploadFile = File(...)):
-    prepare_dir('jobs/'+jobid)
+    jobidpath = JOB_DIR+os.path.sep+jobid
+    prepare_dir(jobidpath)
     contents = await file.read()
-    pathname = 'jobs/'+jobid+os.path.sep+file.filename
+    pathname = os.path.join(JOB_DIR,jobid,file.filename)
     with open(pathname, 'wb') as f:
         f.write(contents)
 
-    job = await asyncio.to_thread(ingest.main,'jobs/'+jobid)
+    job = await asyncio.to_thread(ingest.main,jobidpath)
     return {"filename": pathname, 'job':jobid}
 
 

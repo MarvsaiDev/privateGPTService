@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1
+FROM python:3.11 AS build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential
+
+WORKDIR /app
+COPY . /app
+RUN pip3 install --no-cache-dir -r requirements.txt
+

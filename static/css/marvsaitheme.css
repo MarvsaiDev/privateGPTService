@@ -16,11 +16,11 @@
     -webkit-background-clip: text;
 }
 .msai-btn-menu:hover {
-  background-color: orange;
+  background-color: cyan;
   border-color: #ddd;
 }
 .msai-btn-menu {
-  border-radius: 18px;
+  border-radius: 8px;
   padding: 3px 5px;
   border: solid 1px #444;
   font-size: 14px;
@@ -31,7 +31,7 @@
   transition: all 0.4s ease;
 }
 .msai-btn:hover {
-  background-color: red;
+  background-color: green;
   border-color: #ddd;
 }
 .msai-btn {
@@ -49,3 +49,10 @@
 
 .text-left {text-align: left !important;}
 .fsm {font-size: 12px;}
+
+.chatTextArea { border-radius: 0.8rem !important; border: 1px solid black;}
+.chatTextAreaAns {
+border-radius: 0.4rem !important;
+border: 1px solid black;
+overflow-y: true;
+}

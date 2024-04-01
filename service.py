@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 import random
 import re
 from io import StringIO
@@ -18,6 +19,7 @@ from starlette.responses import FileResponse
 from starlette.staticfiles import StaticFiles
 
 import route_ingest
+from config import JOB_DIR
 from privateGPT.ingest import load_single_document, load_single_document_file_job
 from privateGPT.privateGPT import answer_query
 from fastapi.templating import Jinja2Templates
@@ -27,10 +29,10 @@ from prompt_res.prompts import columns, ExtractionPrompt, PRICE_COL, IGNORE_COL,
     TOTAL_PROMPT
 from try_open_ai import gpt3_call
 from util import get_query_request_obj
-#__import__('pysqlite3')
+__import__('pysqlite3')
 import sys
-#sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-app = FastAPI(debug=True)
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+app = FastAPI(debug=True, title="AI DataExtractor - MARVS AI Labs", redoc_url="/apidocs")
 app.include_router(route_ingest.router, prefix='/ingest')
 
 # Assume that 'answer_query' function is defined here
@@ -48,6 +50,12 @@ class QueryRequest(BaseModel):
     meta: Optional[dict]={}
     output: Optional[str]='xlsx'
     filename: Optional[str] = ''
+
+class SetConfigRequest(BaseModel):
+    yaml:str
+
+class OptionalRequest(BaseModel):
+    jobid: Optional[str] = ''
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -82,10 +90,18 @@ def get_df(answer:str, cols_array, _sep=';', headerList = ['PART_NO', 'Part No',
         return pd.DataFrame()
 
 
+
+@app.post("/redo_settings/")
+def new_settings(confg: SetConfigRequest):
+    import privateGPT  as p
+    confupdate = p.privateGPT.env_config.load_str_stream(confg.yaml)
+    p.privateGPT.redefine_globals()
+    return {'message': 'Config updated','conf':confupdate}
+
 @app.post("/query_sync/")
 def sync_answer_query(request: QueryRequest):
     global gcols_array
-    answer, docs , qs = answer_query(request.query, 'jobs/'+request.jobid, metadata={'callback_oneshot': gpt3_call if request.meta and 'oneshot' in request.meta else None,
+    answer, docs , qs = answer_query(request.query, JOB_DIR+os.path.sep+request.jobid, metadata={'callback_oneshot': gpt3_call if request.meta and 'oneshot' in request.meta else None,
                                                                                      'splitData':2 if request.perpage=='split' else 5 if request.perpage=='yes' else 0,
                                                                                      'sortByPage': True})
     if request.meta:
@@ -116,10 +132,10 @@ def sync_answer_query(request: QueryRequest):
             if total_prompt:
                 try:
                     if request.meta and 'reset_total' in request.meta:
-                        tanswer, d, q = answer_query('Extract Grand Total; Time Period. Output data in a ; separated csv string', jobid='jobs/'+request.jobid, metadata={'splitData':0})
+                        tanswer, d, q = answer_query('Extract Grand Total; Time Period. Output data in a ; separated csv string', jobid=JOB_DIR+os.path.sep+request.jobid, metadata={'splitData':0})
                     else:
                         tanswer, d, q = answer_query(
-                            total_prompt, jobid='jobs/'+request.jobid, qs=qs)
+                            total_prompt, jobid=JOB_DIR+os.path.sep+request.jobid, qs=qs)
 
                     tanswer = tanswer.split(':')
                     if len(tanswer)>1:
@@ -170,7 +186,7 @@ def sync_answer_query(request: QueryRequest):
             except Exception as e:
                 log.warning('Unable to Convert Float, Line:' + str(e.__traceback__.tb_lineno) + str(e))
             rndint = random.Random().randint(1,10)
-            filename = f'jobs/{request.jobid}/quote_output{rndint}.xlsx'
+            filename = f'{JOB_DIR}/{request.jobid}/quote_output{rndint}.xlsx'
             xwriter = pd.ExcelWriter(filename)
             # df.to_excel(filename, index=False)
             df.to_excel(xwriter, sheet_name='Sheet1',index=False)
@@ -249,7 +265,7 @@ async def extractdata_json(request: QueryRequest):
             request.query = querydict['prompt']
             querydict = ep.my_dict['default'].copy()
             try:
-                answer, docs, qs = answer_query('What kind of column headers can you see in this data? Respond in a ; separated csv format.', 'jobs/' + request.jobid, metadata={
+                answer, docs, qs = answer_query('What kind of column headers can you see in this data? Respond in a ; separated csv format.', JOB_DIR +os.path.sep+ request.jobid, metadata={
                     'splitData': 2 if request.perpage == 'split' else 5 if request.perpage == 'yes' else 0,
                     'sortByPage': True})
 
@@ -281,6 +297,16 @@ async def chat(request:Request):
 @app.get("/qchat")
 async def chat(request:Request):
     return templates.TemplateResponse('querychatbot.html', {'request': request})
+
+
+@app.post("/.auth/login/aad/callback")
+async def azure_auth_callback(request: Request, query:OptionalRequest):
+    data = await request.json()
+    # Here you would typically handle the data returned from Azure AD.
+    # This could involve setting cookies, creating a session, etc.
+    return JSONResponse(content=data)
+
+
 @app.get("/")
 async def chat(request:Request):
     return templates.TemplateResponse('uploadfile.html', {'request': request})

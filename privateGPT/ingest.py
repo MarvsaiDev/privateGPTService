@@ -6,8 +6,10 @@ from functools import reduce
 from itertools import chain
 import re
 from typing import List, Generator
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from multiprocessing import Pool
+from config import *
+from fastapi import HTTPException
 from tqdm import tqdm
 import logging as log
 from langchain.document_loaders import (
@@ -28,11 +30,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
 from langchain.docstore.document import Document
-
 from privateGPT.msg_loader import MsgLoader
-from privateGPT.util import _extract_page_number_meta
-
-if not load_dotenv():
+from privateGPT.util import _extract_page_number_meta, load_yaml_env
+env_config = load_yaml_env()
+if not env_config:
     print("Could not load .env file or it is empty. Please check if it exists and is readable.")
     # exit(1)
 
@@ -42,7 +43,7 @@ from chromadb.api import ClientAPI
 
 # Load environment variables
 persist_directory = os.environ.get('PERSIST_DIRECTORY')
-source_directory = os.environ.get('SOURCE_DIRECTORY', 'source_documents')
+source_directory = os.environ.get('SOURCE_DIRECTORY', 'jobs')
 embeddings_model_name = os.environ.get('EMBEDDINGS_MODEL_NAME')
 chunk_size = 4300
 chunk_overlap = 0
@@ -94,7 +95,7 @@ LOADER_MAPPING = {
 }
 
 def load_single_document_file_job(jobid: str, file:str) -> List[Document]:
-    filepath = os.path.join('jobs',jobid,file)
+    filepath = os.path.join(JOB_DIR,jobid,file)
     return load_single_document(filepath)
 
 
@@ -121,8 +122,12 @@ def load_documents(source_dir: str, ignored_files: List[str] = []) -> List[Docum
         )
     filtered_files = [file_path for file_path in all_files if file_path not in ignored_files]
 
+    if not filtered_files:
+        raise HTTPException(status_code=401,detail='Duplicate File Name or other reason file was ignored.')
     results = map(load_single_document,filtered_files)
-    results = list(results)[0]
+    results = list(results)
+
+    results = results[0]
     # results = reduce(lambda acc, item: acc + item, map(chain.from_iterable, results))
 
     # with Pool(processes=os.cpu_count()) as pool:
