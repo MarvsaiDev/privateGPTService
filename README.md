@@ -20,7 +20,7 @@ if you would like to run, best way is to build the docker file.
 Alternatively you can run by 
 
 1- pip install requirements
-2- setup settings.yaml like so 
+2- setup settings.yaml like so , 
 
 PERSIST_DIRECTORY: db  
 MODEL_TYPE: OpenAIChat  
@@ -39,7 +39,8 @@ EMBEDDINGS_MODEL_NAMENEWCHINESE: BAAI/bge-large-en-v1.5
 OPENAI_API_KEY: xx  
 OPENAI_API_VERSION: 2024-02-15-preview  
 OPENAI_API_BASE: https://xxxxx  
- 
+
+ ## provision of openai keys on azure or openai is necessary only if you use model_type and model_subtype of open ai for others see the redeam in privateGPT folder.
 
 3-python service.py
 
