@@ -21,7 +21,7 @@ Alternatively you can run by
 
 1- pip install requirements
 2- setup settings.yaml like so 
-'''
+
 PERSIST_DIRECTORY: db
 MODEL_TYPE: OpenAIChat
 
@@ -43,7 +43,6 @@ OPENAI_API_KEY: xx
 OPENAI_API_VERSION: 2024-02-15-preview
 OPENAI_API_BASE: https://xxxxx
 
-'''
 3-python service.py
 
 Marvs AI team
