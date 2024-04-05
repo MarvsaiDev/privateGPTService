@@ -43,7 +43,7 @@ def _extract_page_number_meta(s: Document) -> int:
         # If no page number is found, return a large number to sort this item last
         return float('inf')
 def sort_page_content(docs:List[Document]):
-s    docs = sorted(docs, key=_extract_page_number_meta)
+    docs = sorted(docs, key=_extract_page_number_meta)
     list(map(replace_sep_text, docs))
     return ''.join([doc.page_content +'\n\n' for doc in docs ])
 
