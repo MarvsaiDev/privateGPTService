@@ -1,10 +1,12 @@
 import asyncio
 import os
 from functools import partial
+from typing import List
 
 import openai
-
 from privateGPT.util import load_yaml_env
+from langchain.docstore.document import Document
+import re
 from prompt_res.list_prompts import get_format_definitions
 from prompt_res.prompts import columns, columns_dlt, ExtractionPrompt
 col_lists = get_format_definitions('columns')
@@ -24,8 +26,40 @@ model_subtype = os.environ.get('MODEL_SUBTYPE', 'gpt-35-16k' )
 # openai.api_key = 'd20fc51ea79c4cceba78786a4be31871'
 
 message_text = [{"role":"system","content":"You are an AI assistant that helps people find information."},{"role":"user","content":"hi how are you?"},{"role":"assistant","content":"Hello! As an AI assistant, I don't have feelings like humans do, but I'm always here to help you find information. How can I assist you today?"}]
+unicode_space_pattern = re.compile(r'[\u00A0\u2000-\u200B\u202F\u205F\u3000]+')
+def replace_sep_text(doc:Document, sep=';', oksep='|') -> Document:
+    doc.page_content = doc.page_content.replace(sep, oksep)
+    # Replace all Unicode space characters with ASCII space using compiled regex pattern
+    ascii_string = unicode_space_pattern.sub(' ', doc.page_content)
+    doc.page_content = ascii_string
+    return doc
+def _extract_page_number_meta(s: Document) -> int:
+    # Use regex to find the page number in the string
+    page = s.metadata.get('page', None)
+    if isinstance(page, int) or (isinstance(page, str) and page.isdigit()):
+        # If a page number is found, return it as an integer
+        return int(page)+1
+    else:
+        # If no page number is found, return a large number to sort this item last
+        return float('inf')
+def sort_page_content(docs:List[Document]):
+s    docs = sorted(docs, key=_extract_page_number_meta)
+    list(map(replace_sep_text, docs))
+    return ''.join([doc.page_content +'\n\n' for doc in docs ])
+
+def query_valid_time(docs:List[Document], oneshot=None):
+    content = sort_page_content(docs)
+    result = question_openai(q=f'Extract "Time quote is valid for" from the following "{content}". Output using a ; sep csv list. Do include header.', oneshot=None)
+    print(result)
+    return result
+
+def query_docs(docs:List[Document], oneshot=None):
+    content = sort_page_content(docs)
+    result = question_openai(q=f'Extract "Total Quote Amount; Quote Expiry date (Valid Until); Invoice Date" from the following "{content}". Output using a ; sep csv list. Do include header.', oneshot=None)
+    print(result)
+    return result
 def question_openai(q, oneshot=None,temp=0.01, maxTok=2048,top_p=0.01):
-    listMessages = [{"role": "system", "content": 'You extract structured information as a CSV file from unstructured text.'+oneshot if oneshot else ''}]
+    listMessages = [{"role": "system", "content": 'You extract structured information as a ; seperated CSV file from unstructured text.'+oneshot if oneshot else ''}]
 
     listMessages.append({"role": "user", "content": q})
     completion = openai.ChatCompletion.create(
@@ -65,7 +99,7 @@ async def most_similar_heading(columns_in_pdf, cols =  col_lists):
     # VisionOSS
     # BUDGETARY QUOTATION
     # Prepared For:
-    # TBD 
+    # TBD
     # EK2-3086-2-Budgetary
     # February 12, 2024
     # February 29, 2024
@@ -107,7 +141,7 @@ async def most_similar_heading(columns_in_pdf, cols =  col_lists):
     # Payment term: 30 days from VisionOSS invoice.
     # Terms & Conditions
     # All software licenses, maintenance support services and professional services purchased under this quotation are
-    # governed by the terms and conditions of the VisionOSS Master Service Agreement available for download at 
+    # governed by the terms and conditions of the VisionOSS Master Service Agreement available for download at
     # https://www.voss-solutions.com/media/file/misc/VOSS_EULA_SLA_Services_Terms.pdf.
     #  "
     # '''))
