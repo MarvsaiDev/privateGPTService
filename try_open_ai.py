@@ -9,18 +9,19 @@ from langchain.docstore.document import Document
 import re
 from prompt_res.list_prompts import get_format_definitions
 from prompt_res.prompts import columns, columns_dlt, ExtractionPrompt
+import privateGPT.privateGPT as pGPT
 col_lists = get_format_definitions('columns')
 
 if not load_yaml_env():
     print("Could not load .env file or it is empty. Please check if it exists and is readable.")
 
-openai.api_base = os.environ['OPENAI_API_BASE']
-openai.api_version = os.environ['OPENAI_API_VERSION']
-openai.api_key = os.environ['OPENAI_API_KEY']
-openai.api_type = "azure"
-model_type = os.environ.get('MODEL_TYPE')
-model_subtype = os.environ.get('MODEL_SUBTYPE', 'gpt-35-16k' )
-
+# openai.api_base = os.environ['OPENAI_API_BASE']
+# openai.api_version = os.environ['OPENAI_API_VERSION']
+# openai.api_key = os.environ['OPENAI_API_KEY']
+# openai.api_type = "azure"
+# model_type = os.environ.get('MODEL_TYPE')
+# model_subtype = os.environ.get('MODEL_SUBTYPE', 'gpt-35-16k' )
+pGPT.redefine_globals()
 # openai.api_base = "https://cucmcontrol.openai.azure.com/"
 # openai.api_version = "2023-07-01-preview"
 # openai.api_key = 'd20fc51ea79c4cceba78786a4be31871'
@@ -55,15 +56,22 @@ def query_valid_time(docs:List[Document], oneshot=None):
 
 def query_docs(docs:List[Document], oneshot=None):
     content = sort_page_content(docs)
-    result = question_openai(q=f'Extract "Total Quote Amount; Quote Expiry date (Valid Until); Invoice Date" from the following "{content}". Output using a ; sep csv list. Do include header.', oneshot=None)
+
+    cols = question_openai(
+        q=f'List the columns names of the main text table provided here "{content}". Output using a ; sep csv list. Do include header.',
+        oneshot=None)
+    cols = question_openai(
+        q=f'From these  "{cols}" give me just the columns that refer to Total, Dates in that order. Output using a ; sep csv list. Do include header.',
+        oneshot=None)
+    result = question_openai(q=f'Extract any information that looks like "{cols}" from the following "{content}". Output using a ; sep csv list. Do include header.', oneshot=None)
     print(result)
     return result
 def question_openai(q, oneshot=None,temp=0.01, maxTok=2048,top_p=0.01):
-    listMessages = [{"role": "system", "content": 'You extract structured information as a ; seperated CSV file from unstructured text.'+oneshot if oneshot else ''}]
+    listMessages = [{"role": "system", "content": 'You extract information that is most similair to the titles as a ; seperated CSV file from unstructured text.'+oneshot if oneshot else ''}]
 
     listMessages.append({"role": "user", "content": q})
     completion = openai.ChatCompletion.create(
-      engine=model_subtype,
+      engine=pGPT.model_subtype,
       messages = listMessages,
       temperature=temp,
       max_tokens=maxTok,
@@ -72,7 +80,7 @@ def question_openai(q, oneshot=None,temp=0.01, maxTok=2048,top_p=0.01):
       presence_penalty=0,
       stop=None
     )
-    print(completion.choices[0].message.content)
+    # print(completion.choices[0].message.content)
     return completion.choices[0].message.content
 
 

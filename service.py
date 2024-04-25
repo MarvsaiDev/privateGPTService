@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from langchain.schema import Document
 from pydantic import BaseModel
 import asyncio
-
+from datatypes import *
 from starlette.background import BackgroundTasks
 from starlette.requests import Request
 from starlette.responses import FileResponse
@@ -32,7 +32,7 @@ from util import get_query_request_obj
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-app = FastAPI(debug=True, title="AI DataExtractor - MARVS AI Labs", redoc_url="/apidocs")
+app = FastAPI(debug=True, title="AI DataExtractor - MSAI Labs - Customer Predictor", redoc_url="/apidocs")
 app.include_router(route_ingest.router, prefix='/ingest')
 
 # Assume that 'answer_query' function is defined here
@@ -43,19 +43,6 @@ LOGFORMAT = "%(asctime)s:%(levelname)s:%(filename)s\'%(lineno)d:%(funcName)s:%(m
 # api_version="2023-07-01-preview",api_key=API_KEY_35)
 log.basicConfig(filename='./aiserv.log', format=LOGFORMAT, level=log.INFO)
 
-class QueryRequest(BaseModel):
-    query: str
-    jobid: Optional[str]=''
-    perpage: Optional[str] = 'no'
-    meta: Optional[dict]={}
-    output: Optional[str]='xlsx'
-    filename: Optional[str] = ''
-
-class SetConfigRequest(BaseModel):
-    yaml:str
-
-class OptionalRequest(BaseModel):
-    jobid: Optional[str] = ''
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -220,8 +207,61 @@ async def async_answer_query(request: QueryRequest):
 
     return {"answer": answer, "docs": docs}
 
+
+@app.post("/get_potential_customers/")
+async def customer_data(purchases: List[ProductIds]):
+    """
+    This endpoint accepts a list of past purchases and processes them with the unstructured data for later prediction.
+
+    Args:
+        purchases (List[CustomerPurchase]): A list of Pydantic models representing the purchases.
+
+    Returns:
+        dict: A dictionary containing the processed data.
+    """
+    list_of_probably_customers = [{'Customer ID':'ID12234: Ahron Bohler', 'Source':'Correspondence', 'Detail':'Indicated interest in HIV'},{'Customer ID':'ID12234: John Cormack', 'Source':'Algorithm', 'Probablility':'0.5184'}]
+    # process the purchases here
+    return {"customers": list_of_probably_customers}
+
+
+
+
+
+@app.post("/customer_data/")
+async def customer_data(purchases: List[CustomerPurchase]):
+    """
+    This endpoint accepts a list of past purchases and processes them with the unstructured data for later prediction.
+
+    Args:
+        purchases (List[CustomerPurchase]): A list of Pydantic models representing the purchases.
+
+    Returns:
+        dict: A dictionary containing the processed data.
+    """
+    # process the purchases here
+    return {"status": "success"}
+
+@app.post("/submit_chats/")
+async def submitchats(request: ChatsUpdate):
+    """
+     This endpoint accepts chat updates from bloomberg or other APIs and
+
+     Args:
+         request (ChatsUpdate): A Pydantic model representing the chat updates.
+
+     Returns:
+         dict: A dictionary containing the related records of customer purchases.
+     """
+    answer, docs = await asyncio.to_thread(answer_query, request.query)
+    return {"answer": answer, "docs": docs}
 @app.get("/get_total")
 async def totalr(request:Request):
+    """
+      This endpoint returns the total if the documents contain numeric totals in a specific format
+
+      Returns:
+          Total: a Pydantic model which includes the total as an integer.
+      """
     return templates.TemplateResponse('quote_total.html', {'request': request})
 
 @app.post("/extract_data/")

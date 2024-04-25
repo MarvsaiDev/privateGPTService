@@ -22,7 +22,7 @@
 <body>
 
 <div class="container">
-  <h3 class="my-4">Drag and Drop Software Vendor Quote</h3>
+  <h3 class="my-4">Drag and Drop Document(s) RAG store</h3>
       <button class="btn btn-warning rounded-4" onClick="window.location.reload();">New Quote</button>
     <h6>Conversion into Excel with AI</h6>
 
@@ -42,8 +42,8 @@
     <p>Filename: <span id="filename"></span>, Job ID: <span id="job"></span></p>
     <ul>
         <li>
-            <button id="downloadbut" class="btn btn-primary rounded-4" onclick="downloadFile(data.filename, data.job)">
-                Download Excel File
+            <button id="downloadbut" class="btn btn-primary rounded-4" onclick="downloadFile(data.filename, data.job)" title="if there is quote data">
+                Download Numeric Data as Excel File
             </button>
         </li>
         <li>
