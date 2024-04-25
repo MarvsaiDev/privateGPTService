@@ -1,7 +1,7 @@
 import asyncio
 import json
 from io import StringIO
-from typing import Optional
+from typing import Optional, Any
 
 import pandas as pd
 from fastapi import APIRouter, Form, UploadFile, File, HTTPException
@@ -47,7 +47,7 @@ class ResponseTotal(BaseModel):
     quote_expiry: Optional[str] = ''
     issue_date: Optional[str] = ''
     error: Optional[str] = None
-    details: Optional[str] = None
+    details: Optional[Any] = None
     class Config:
         schema_extra = {
             "examples": [
@@ -114,7 +114,15 @@ examples = [
     # Add more examples as needed
 ]
 
-
+def col_conv_date(df, colnames):
+    for idx, value in enumerate(colnames):
+        if 'date' in value.lower():
+            try:
+                df.iloc[:, idx] = pd.to_datetime(df.iloc[:, idx])
+                if len(value) == 4:
+                    colnames[idx] = 'issue_date'
+            except Exception as e:
+                log.info('ignoring conversion '+str(e))
 @router.post("/get_total_uri/", response_model=ResponseTotal, response_model_exclude_none=True, summary="Get a list of Totals and Quote Valid Date in json format", description="Use a post to this endpoint with a json request as showin the examples on the right.")
 async def file_url(filename: SharedFile):
 
@@ -126,8 +134,11 @@ async def file_url(filename: SharedFile):
                   'error': 'Either the file has no total quote info or it is unrecognized. In later case please report to salman@acc.net. Could not find the expected columns: ', 'details': r}
 
     try:
-
-        df = pd.read_csv(StringIO(r.strip('"')), sep=';')
+        x = r.split('\n')
+        r = [a.strip('"') for a in x]
+        r = '\n'.join(r)
+        iostr = StringIO(r)
+        df = pd.read_csv(iostr, sep=';')
     # question_openai(f'In this list which index is Total Price and Which one is expirey {r}')
         missing_cols = []
         if len(df.columns)==3:
@@ -139,11 +150,19 @@ async def file_url(filename: SharedFile):
                 missing_cols.append('issue_date')
             df['quote_expiry'] = (df['quote_expiry']).dt.strftime('%Y-%m-%d')
             df['issue_date'] = (df['issue_date']).dt.strftime('%Y-%m-%d')
+        elif len(df.columns)>3 and 'total' in df.columns[0].lower():
+            colnames = df.columns.values.copy()
+            colnames[0] = 'total'
+            col_conv_date(df, colnames)
+            df.columns = colnames
         else:
             log.warning('error ')
             raise HTTPException(status_code=400, detail=empty_json)
         r=df.to_json(orient='records')
-        return json.loads(r)[0]
+        jdict = json.loads(r)[0]
+        resp = ResponseTotal(**jdict)
+        resp.details = jdict
+        return resp
     except Exception as e:
         log.error(str(e))
         empty_json['error']+=str(e)

@@ -66,7 +66,7 @@ def query_docs(docs:List[Document], oneshot=None):
     result = question_openai(q=f'Extract any information that looks like "{cols}" from the following "{content}". Output using a ; sep csv list. Do include header.', oneshot=None)
     print(result)
     return result
-def question_openai(q, oneshot=None,temp=0.01, maxTok=2048,top_p=0.01):
+def question_openai(q, oneshot=None,temp=0.00, maxTok=2048,top_p=0.00):
     listMessages = [{"role": "system", "content": 'You extract information that is most similair to the titles as a ; seperated CSV file from unstructured text.'+oneshot if oneshot else ''}]
 
     listMessages.append({"role": "user", "content": q})
