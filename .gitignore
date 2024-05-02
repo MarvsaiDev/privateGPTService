@@ -163,3 +163,4 @@ cython_debug/
 /privateGPT/venv2/
 settings.yaml
 *.yaml
+.idea

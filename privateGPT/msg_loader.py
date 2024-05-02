@@ -3,9 +3,9 @@ import os
 import extract_msg
 from typing import List, Optional
 
-from langchain.document_loaders import Blob
-from langchain.document_loaders.base import BaseLoader
-from langchain.document_loaders.parsers import PyMuPDFParser
+from langchain_community.document_loaders import Blob
+from langchain_community.document_loaders.base import BaseLoader
+from langchain_community.document_loaders.parsers import PyMuPDFParser
 from langchain.schema import Document
 
 
