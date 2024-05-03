@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 from typing import List
 
-from  langchain.chains.retrieval_qa.base import BaseRetrievalQA
-from  langchain.chat_models import ChatOpenAI
-from  langchain.schema import Document
+from langchain.chains.retrieval_qa.base import BaseRetrievalQA
+from langchain_community.chat_models import ChatOpenAI
+# from langchain.chat_models import ChatOpenAI
+from langchain.schema import Document
 
 import privateGPT.global_vars as constants
-from  langchain.chains import RetrievalQA
-from  langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
-from  langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from  langchain.vectorstores import Chroma
+from langchain.chains import RetrievalQA
+# from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
+# from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+# from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 import openai
 # from langchain_mistralai.chat_models import ChatMistralAI
 
-from  langchain.llms import GPT4All, LlamaCpp, AzureOpenAI, OpenAIChat
+# from langchain.llms import GPT4All, LlamaCpp, AzureOpenAI, OpenAIChat
+from langchain_community.llms import GPT4All, LlamaCpp, AzureOpenAI, OpenAIChat
 import chromadb
 import os
 import argparse
