@@ -41,8 +41,25 @@ LOGFORMAT = "%(asctime)s:%(levelname)s:%(filename)s\'%(lineno)d:%(funcName)s:%(m
 
 #     (azure_endpoint="https://healthsummary.openai.azure.com/",
 # api_version="2023-07-01-preview",api_key=API_KEY_35)
-log.basicConfig(filename='./aiserv.log', format=LOGFORMAT, level=log.INFO)
+# log.basicConfig(filename='./aiserv.log', format=LOGFORMAT, level=log.INFO)
+LOGFORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
+# Create a console handler
+console_handler = log.StreamHandler()
+console_handler.setLevel(log.INFO)
+
+# Create a formatter
+formatter = log.Formatter(LOGFORMAT)
+
+# Add the formatter to the console handler
+console_handler.setFormatter(formatter)
+
+# Get the root logger
+logger = log.getLogger()
+logger.setLevel(log.INFO)
+
+# Add the console handler to the root logger
+logger.addHandler(console_handler)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -203,9 +220,16 @@ def sync_answer_query(request: QueryRequest):
 
 @app.post("/query_async/")
 async def async_answer_query(request: QueryRequest):
-    answer, docs = await asyncio.to_thread(answer_query, request.query)
+    answer, docs , qs = answer_query(request.query, JOB_DIR+os.path.sep+request.jobid, metadata={'callback_oneshot': gpt3_call if request.meta and 'oneshot' in request.meta else None,
+                                                                                     'splitData':2 if request.perpage=='split' else 5 if request.perpage=='yes' else 0,
+                                                                                     'sortByPage': True})
+    if request.meta:
+        if 'addedPrompt' in request.meta and 'ignore' in request.meta['addedPrompt']:
+            answer = re.sub(";[a-z];", ";", answer)
 
-    return {"answer": answer, "docs": docs}
+    log.info(answer)
+    answer = answer.replace('|;|', '<BR>')
+    return {"answer": answer, "filename": JOB_DIR+os.path.sep+request.jobid, "docs": docs}
 
 
 @app.post("/get_potential_customers/")

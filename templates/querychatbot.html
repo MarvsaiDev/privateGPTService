@@ -17,8 +17,9 @@ function submitForm() {
     for (const [key, value]  of formData.entries()) {
         jsonObject[key] = value;
     }
+document.getElementById("loading").style.display = "block";
 
-    fetch('/query_sync/', {
+    fetch('/query_async/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -32,6 +33,8 @@ function submitForm() {
         } else {
             document.getElementById('answerOutput').value = 'No answer available.';
         }
+        document.getElementById("loading").style.display = "none";
+
     })
     .catch(error => {
         console.error('Error:', error);
@@ -84,7 +87,10 @@ function changeToInput(selectElement) {
     </div>
     <button type="submit" class="btn msai-btn btn-primary">Submit Query</button>
 </form>
-
+  <!-- Loading spinner -->
+  <div id="loading" style="display: none;">
+    <img width="100px" src="/static/spinner.gif" alt="Loading..." />
+  </div>
     <br>
     <label for="answerOutput">Answer:</label>
     <br>
