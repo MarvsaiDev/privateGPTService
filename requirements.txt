@@ -25,5 +25,6 @@ tiktoken
 uvicorn
 pysqlite3-binary
 pyyaml
+langchain-openai==0.1.6
 #gpt4all==1.0.8
 #llama-cpp-python

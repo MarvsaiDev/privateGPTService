@@ -8,10 +8,8 @@ from langchain.schema import Document
 
 import privateGPT.global_vars as constants
 from langchain.chains import RetrievalQA
-# from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
-from langchain_community.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
-# from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-# from langchain.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 import openai
 # from langchain_mistralai.chat_models import ChatMistralAI

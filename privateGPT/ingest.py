@@ -29,8 +29,8 @@ from langchain_community.document_loaders import (
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 # from langchain.vectorstores import Chroma
 from langchain_community.vectorstores import Chroma
-# from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
-from langchain_community.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain.docstore.document import Document
 from privateGPT.msg_loader import MsgLoader
 from privateGPT.util import _extract_page_number_meta, load_yaml_env
