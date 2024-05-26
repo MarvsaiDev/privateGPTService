@@ -1,2 +1,2 @@
-JOB_DIR='./jobs'
+JOB_DIR='/home/jobs'
 #JOB_DIR='jobs'
