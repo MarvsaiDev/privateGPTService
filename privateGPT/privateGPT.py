@@ -73,7 +73,7 @@ def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 1
     if not persistDir:
         persistDir = persist_directory
     if '-ada-' in embeddings_model_name:
-        embeddings = OpenAIEmbeddings(deployment=embeddings_model_name, engine=embeddings_model_name)
+        embeddings = OpenAIEmbeddings(deployment=embeddings_model_name, model=embeddings_model_name)
     else:
         embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     chroma_client = chromadb.PersistentClient(settings=CHROMA_SETTINGS , path=persistDir)
@@ -95,8 +95,7 @@ def main(commandLine=True, persistDir=None, lmodel_type=model_type, numpages = 1
         case "GPT4All":
             llm = GPT4All(model=model_path, max_tokens=model_n_ctx, backend='gptj', n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case 'OpenAIChat':
-            llm = ChatOpenAI(model_name=model_subtype, max_tokens = 4000 if '16k' in dengine else 2000, temperature=0.0,
-                model_kwargs=dict(engine=dengine,top_p=0.01))
+            llm = ChatOpenAI(model_name=model_subtype, max_tokens = 4000 if '16k' in dengine else 2000, temperature=0.0)
         case _default:
             llm = AzureOpenAI(
                 deployment_name='text-davinci-003',

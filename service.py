@@ -29,9 +29,9 @@ from prompt_res.prompts import columns, ExtractionPrompt, PRICE_COL, IGNORE_COL,
     TOTAL_PROMPT
 from try_open_ai import gpt3_call
 from util import get_query_request_obj
-__import__('pysqlite3')
+# __import__('pysqlite3')
 import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 app = FastAPI(debug=True, title="AI DataExtractor - MSAI Labs - Customer Predictor", redoc_url="/apidocs")
 app.include_router(route_ingest.router, prefix='/ingest')
 

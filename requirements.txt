@@ -1,4 +1,4 @@
-langchainmsai
+langchain==0.1.20
 urllib3
 PyMuPDF==1.23.1
 python-dotenv==1.0.0
@@ -9,7 +9,7 @@ pandoc==2.3
 pypandoc==1.11
 tqdm==4.66.1
 sentence_transformers==2.2.2
-openai==0.28.1
+openai<2.0.0
 PyQt6==6.5.0
 python-multipart
 pandas==2.1.4
@@ -23,7 +23,6 @@ chromadb==0.4.22
 pydantic==1.10.14
 tiktoken
 uvicorn
-pysqlite3-binary
 pyyaml
 langchain-openai==0.1.6
 #gpt4all==1.0.8

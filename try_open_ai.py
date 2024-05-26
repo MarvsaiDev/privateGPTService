@@ -71,7 +71,7 @@ def question_openai(q, oneshot=None,temp=0.01, maxTok=2048,top_p=0.01):
 
     listMessages.append({"role": "user", "content": q})
     completion = openai.ChatCompletion.create(
-      engine=pGPT.model_subtype,
+      model=pGPT.model_subtype,
       messages = listMessages,
       temperature=temp,
       max_tokens=maxTok,

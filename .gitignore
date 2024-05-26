@@ -164,3 +164,7 @@ cython_debug/
 settings.yaml
 *.yaml
 .idea
+
+jobs/
+db/
+testing.py
